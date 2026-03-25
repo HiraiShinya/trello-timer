@@ -1,0 +1,394 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.board{background:#0079bf;padding:16px;border-radius:8px;}
+.section-label{font-size:11px;color:#fff;opacity:0.8;font-weight:500;margin-bottom:6px;}
+.settings-box{background:rgba(255,255,255,0.15);border-radius:6px;padding:10px 12px;margin-bottom:12px;}
+.settings-title{font-size:12px;color:#fff;font-weight:500;margin-bottom:8px;}
+.member-settings{display:flex;flex-wrap:wrap;gap:8px;}
+.member-setting-item{background:#fff;border-radius:6px;padding:8px 10px;display:flex;align-items:center;gap:8px;min-width:140px;}
+.photo-upload-area{width:36px;height:36px;border-radius:50%;border:2px dashed #c1c7d0;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;position:relative;}
+.photo-upload-area img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.photo-upload-area input{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;}
+.photo-placeholder{font-size:16px;color:#c1c7d0;}
+.member-setting-name{font-size:12px;color:#172b4d;font-weight:500;}
+.member-setting-hint{font-size:10px;color:#888;margin-top:1px;}
+.list{background:#ebecf0;border-radius:6px;padding:8px;width:100%;}
+.list-title{font-size:13px;font-weight:500;color:#172b4d;padding:4px 8px 10px;}
+.card{background:#fff;border-radius:6px;padding:10px 12px;margin-bottom:10px;border:1px solid #dfe1e6;}
+.card-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.card-icon{width:38px;height:38px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.card-meta{flex:1;}
+.card-title{font-size:13px;color:#172b4d;font-weight:500;margin-bottom:4px;}
+.active-faces{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;min-height:0;}
+.face-chip{width:28px;height:28px;border-radius:50%;overflow:hidden;border:2px solid #fff;box-shadow:0 0 0 1px #dfe1e6;flex-shrink:0;background:#f4f5f7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;}
+.face-chip img{width:100%;height:100%;object-fit:cover;}
+.label{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:500;margin-bottom:4px;display:inline-block;}
+.lbl-y{background:#f5dd29;color:#7a5800;}
+.lbl-r{background:#eb5a46;color:#7a1a0d;}
+.lbl-g{background:#61bd4f;color:#1d6127;}
+.add-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+.member-sel{font-size:12px;padding:3px 6px;border-radius:4px;border:1px solid #c1c7d0;background:#f4f5f7;color:#172b4d;height:28px;cursor:pointer;}
+.btn-add{font-size:12px;padding:0 12px;border-radius:4px;border:none;background:#0079bf;color:#fff;cursor:pointer;height:28px;white-space:nowrap;font-weight:500;}
+.btn-add:hover{background:#005fa3;}
+.btn-stopall{font-size:12px;padding:0 12px;border-radius:4px;border:none;background:#172b4d;color:#fff;cursor:pointer;height:28px;white-space:nowrap;font-weight:500;display:none;}
+.btn-stopall:hover{background:#091e42;}
+.timer-row{display:flex;align-items:center;gap:6px;border-radius:4px;padding:5px 8px;margin-bottom:4px;}
+.timer-row.running{background:#f4f5f7;}
+.timer-row.paused{background:#fff3f3;border:1px solid #ffd5d0;}
+.t-avatar{width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#e0e2e6;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;}
+.t-avatar img{width:100%;height:100%;object-fit:cover;}
+.timer-name{font-size:12px;color:#172b4d;font-weight:500;flex:1;}
+.status-badge{font-size:10px;padding:1px 6px;border-radius:3px;white-space:nowrap;}
+.badge-running{background:#e3fcef;color:#006644;}
+.badge-paused{background:#fff0ec;color:#bf2600;}
+.timer-val{font-size:12px;font-weight:500;font-family:monospace;min-width:65px;text-align:right;}
+.timer-val.running{color:#eb5a46;}
+.timer-val.paused{color:#888;}
+.btn-toggle{font-size:11px;padding:0 8px;border-radius:3px;border:none;cursor:pointer;height:22px;white-space:nowrap;}
+.btn-running{background:#eb5a46;color:#fff;}
+.btn-running:hover{background:#c9372c;}
+.btn-paused{background:#0079bf;color:#fff;}
+.btn-paused:hover{background:#005fa3;}
+.log-box{background:rgba(255,255,255,0.15);border-radius:6px;padding:10px 12px;margin-top:12px;}
+.log-title{font-size:12px;color:#fff;font-weight:500;margin-bottom:6px;}
+.log-item{font-size:11px;color:#fff;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;}
+.log-item:last-child{border-bottom:none;}
+.empty-log{font-size:11px;color:rgba(255,255,255,0.5);}
+</style>
+
+<div class="board">
+
+  <!-- 顔写真設定エリア -->
+  <div class="settings-box">
+    <div class="settings-title">作業者 顔写真設定</div>
+    <div class="member-settings" id="memberSettings"></div>
+  </div>
+
+  <div class="list">
+    <div class="list-title">作業中</div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#fff9e6;">🚛</div>
+        <div class="card-meta">
+          <span class="label lbl-y">車検</span>
+          <div class="card-title">10tトラック 車検（品川 あ 123）</div>
+        </div>
+      </div>
+      <div class="active-faces" id="faces1"></div>
+      <div class="add-row">
+        <select class="member-sel" id="sel1"><option value="">作業者を選択</option></select>
+        <button class="btn-add" id="addbtn1">+ 追加</button>
+        <button class="btn-stopall" id="stopall1">&#9646;&#9646; 全員停止</button>
+      </div>
+      <div id="rows1"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#fff0ec;">🔧</div>
+        <div class="card-meta">
+          <span class="label lbl-r">修理</span>
+          <div class="card-title">4tトラック エンジン修理（品川 い 456）</div>
+        </div>
+      </div>
+      <div class="active-faces" id="faces2"></div>
+      <div class="add-row">
+        <select class="member-sel" id="sel2"><option value="">作業者を選択</option></select>
+        <button class="btn-add" id="addbtn2">+ 追加</button>
+        <button class="btn-stopall" id="stopall2">&#9646;&#9646; 全員停止</button>
+      </div>
+      <div id="rows2"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#e8f5e9;">🔍</div>
+        <div class="card-meta">
+          <span class="label lbl-g">点検</span>
+          <div class="card-title">2tトラック 定期点検（品川 う 789）</div>
+        </div>
+      </div>
+      <div class="active-faces" id="faces3"></div>
+      <div class="add-row">
+        <select class="member-sel" id="sel3"><option value="">作業者を選択</option></select>
+        <button class="btn-add" id="addbtn3">+ 追加</button>
+        <button class="btn-stopall" id="stopall3">&#9646;&#9646; 全員停止</button>
+      </div>
+      <div id="rows3"></div>
+    </div>
+  </div>
+
+  <div class="log-box">
+    <div class="log-title">計測ログ</div>
+    <div id="logList"><div class="empty-log">まだ記録がありません</div></div>
+  </div>
+</div>
+
+<script>
+var MEMBERS = ['田中','佐藤','鈴木','山田'];
+var memberPhotos = {};
+var timers = {};
+var colorIdx = 0;
+var memberColors = {};
+var palettes = [{bg:'#B5D4F4',fg:'#0C447C'},{bg:'#9FE1CB',fg:'#085041'},{bg:'#F5C4B3',fg:'#712B13'},{bg:'#FAC775',fg:'#633806'},{bg:'#C0DD97',fg:'#27500A'}];
+
+function getColor(n){if(!memberColors[n]){memberColors[n]=palettes[colorIdx%palettes.length];colorIdx++;}return memberColors[n];}
+function fmt(s){return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor((s%3600)/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+
+function makeAvatarEl(member, size){
+  var wrap = document.createElement('div');
+  wrap.className = 't-avatar';
+  wrap.style.width = size+'px';
+  wrap.style.height = size+'px';
+  if(memberPhotos[member]){
+    var img = document.createElement('img');
+    img.src = memberPhotos[member];
+    wrap.appendChild(img);
+  } else {
+    var col = getColor(member);
+    wrap.style.background = col.bg;
+    wrap.style.color = col.fg;
+    wrap.textContent = member.slice(0,2);
+  }
+  return wrap;
+}
+
+function buildSettings(){
+  var container = document.getElementById('memberSettings');
+  container.innerHTML = '';
+  MEMBERS.forEach(function(name){
+    var item = document.createElement('div');
+    item.className = 'member-setting-item';
+
+    var uploadArea = document.createElement('div');
+    uploadArea.className = 'photo-upload-area';
+    uploadArea.id = 'upload_'+name;
+
+    if(memberPhotos[name]){
+      var img = document.createElement('img');
+      img.src = memberPhotos[name];
+      uploadArea.appendChild(img);
+    } else {
+      var ph = document.createElement('span');
+      ph.className = 'photo-placeholder';
+      ph.textContent = '+';
+      uploadArea.appendChild(ph);
+    }
+
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.addEventListener('change', function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        memberPhotos[name] = ev.target.result;
+        buildSettings();
+        refreshAllSelects();
+        refreshAllFaceChips();
+        refreshAllTimerAvatars();
+      };
+      reader.readAsDataURL(file);
+    });
+    uploadArea.appendChild(fileInput);
+
+    var info = document.createElement('div');
+    var nm = document.createElement('div');
+    nm.className = 'member-setting-name';
+    nm.textContent = name;
+    var hint = document.createElement('div');
+    hint.className = 'member-setting-hint';
+    hint.textContent = memberPhotos[name] ? '登録済み' : '写真を追加';
+    info.appendChild(nm);
+    info.appendChild(hint);
+
+    item.appendChild(uploadArea);
+    item.appendChild(info);
+    container.appendChild(item);
+  });
+}
+
+function refreshAllSelects(){
+  ['sel1','sel2','sel3'].forEach(function(selId){
+    var sel = document.getElementById(selId);
+    var current = sel.value;
+    sel.innerHTML = '<option value="">作業者を選択</option>';
+    MEMBERS.forEach(function(name){
+      var opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+  });
+}
+
+function refreshAllFaceChips(){
+  ['rows1','rows2','rows3'].forEach(function(rowsId, i){
+    var facesId = 'faces'+(i+1);
+    rebuildFaceChips(rowsId, facesId);
+  });
+}
+
+function refreshAllTimerAvatars(){
+  document.querySelectorAll('.t-avatar[data-member]').forEach(function(el){
+    var member = el.dataset.member;
+    el.innerHTML = '';
+    if(memberPhotos[member]){
+      var img = document.createElement('img');
+      img.src = memberPhotos[member];
+      el.appendChild(img);
+      el.style.background = '';
+      el.style.color = '';
+    } else {
+      var col = getColor(member);
+      el.style.background = col.bg;
+      el.style.color = col.fg;
+      el.textContent = member.slice(0,2);
+    }
+  });
+}
+
+function rebuildFaceChips(rowsId, facesId){
+  var facesEl = document.getElementById(facesId);
+  facesEl.innerHTML = '';
+  var rows = document.getElementById(rowsId);
+  Array.from(rows.children).forEach(function(rowEl){
+    var member = rowEl.dataset.member;
+    if(!member) return;
+    var chip = document.createElement('div');
+    chip.className = 'face-chip';
+    chip.title = member + (rowEl.dataset.state==='running' ? ' (計測中)' : ' (停止中)');
+    chip.style.opacity = rowEl.dataset.state==='running' ? '1' : '0.4';
+    if(memberPhotos[member]){
+      var img = document.createElement('img');
+      img.src = memberPhotos[member];
+      chip.appendChild(img);
+    } else {
+      var col = getColor(member);
+      chip.style.background = col.bg;
+      chip.style.color = col.fg;
+      chip.style.fontSize = '10px';
+      chip.textContent = member.slice(0,2);
+    }
+    facesEl.appendChild(chip);
+  });
+}
+
+function updateStopAllBtn(rowsId, stopAllId){
+  var rows = document.getElementById(rowsId);
+  var running = Array.from(rows.children).filter(function(r){return r.dataset.state==='running';});
+  document.getElementById(stopAllId).style.display = running.length>=2?'inline-block':'none';
+}
+
+function addLog(member, cardName, seconds, isResume){
+  var list = document.getElementById('logList');
+  var empty = list.querySelector('.empty-log');
+  if(empty) empty.remove();
+  var now = new Date();
+  var time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  var el = document.createElement('div');
+  el.className = 'log-item';
+  var left = document.createElement('div');
+  left.style.cssText = 'display:flex;align-items:center;gap:6px;';
+  var av = makeAvatarEl(member, 20);
+  av.dataset.member = member;
+  var info = document.createElement('span');
+  var lbl = isResume ? '<span style="opacity:0.5;font-size:10px;">[再開]</span> ' : '';
+  info.innerHTML = '<b>'+member+'</b> '+lbl+'<span style="opacity:0.6;font-size:10px;">'+cardName+'</span>';
+  left.appendChild(av);
+  left.appendChild(info);
+  var right = document.createElement('div');
+  right.style.cssText = 'display:flex;gap:8px;align-items:center;';
+  right.innerHTML = '<span style="font-family:monospace;">'+fmt(seconds)+'</span><span style="opacity:0.5;font-size:10px;">'+time+'</span>';
+  el.appendChild(left);
+  el.appendChild(right);
+  list.insertBefore(el, list.firstChild);
+}
+
+function setRowPaused(rowEl, rowsId, facesId){
+  rowEl.className='timer-row paused';rowEl.dataset.state='paused';
+  rowEl.querySelector('.status-badge').className='status-badge badge-paused';
+  rowEl.querySelector('.status-badge').textContent='停止中';
+  rowEl.querySelector('.timer-val').className='timer-val paused';
+  var tb=rowEl.querySelector('.btn-toggle');tb.className='btn-toggle btn-paused';tb.textContent='再開';
+  rebuildFaceChips(rowsId, facesId);
+}
+
+function addMemberRow(key, member, rowsId, stopAllId, facesId, cardName){
+  var start = Date.now();
+  timers[key] = {start:start, accumulated:0, iv:null};
+
+  var rowEl = document.createElement('div');
+  rowEl.className='timer-row running';rowEl.dataset.state='running';rowEl.dataset.member=member;
+
+  var av = makeAvatarEl(member, 26);
+  av.dataset.member = member;
+
+  var ns = document.createElement('span');ns.className='timer-name';ns.textContent=member;
+  var badge = document.createElement('span');badge.className='status-badge badge-running';badge.textContent='計測中';
+  var vs = document.createElement('span');vs.className='timer-val running';vs.textContent='00:00:00';
+  var tb = document.createElement('button');tb.className='btn-toggle btn-running';tb.textContent='停止';
+
+  rowEl.appendChild(av);rowEl.appendChild(ns);rowEl.appendChild(badge);rowEl.appendChild(vs);rowEl.appendChild(tb);
+  document.getElementById(rowsId).appendChild(rowEl);
+
+  timers[key].iv = setInterval(function(){
+    vs.textContent = fmt(timers[key].accumulated + Math.floor((Date.now()-timers[key].start)/1000));
+  },1000);
+
+  rebuildFaceChips(rowsId, facesId);
+  updateStopAllBtn(rowsId, stopAllId);
+
+  tb.addEventListener('click', function(){
+    if(rowEl.dataset.state==='running'){
+      clearInterval(timers[key].iv);
+      var elapsed = timers[key].accumulated + Math.floor((Date.now()-timers[key].start)/1000);
+      timers[key].accumulated=elapsed;timers[key].start=null;timers[key].iv=null;
+      addLog(member, cardName, elapsed, false);
+      setRowPaused(rowEl, rowsId, facesId);
+      updateStopAllBtn(rowsId, stopAllId);
+    } else {
+      timers[key].start=Date.now();
+      timers[key].iv=setInterval(function(){vs.textContent=fmt(timers[key].accumulated+Math.floor((Date.now()-timers[key].start)/1000));},1000);
+      rowEl.className='timer-row running';rowEl.dataset.state='running';
+      badge.className='status-badge badge-running';badge.textContent='計測中';
+      vs.className='timer-val running';tb.className='btn-toggle btn-running';tb.textContent='停止';
+      addLog(member, cardName, timers[key].accumulated, true);
+      rebuildFaceChips(rowsId, facesId);
+      updateStopAllBtn(rowsId, stopAllId);
+    }
+  });
+}
+
+function setup(selId, btnId, rowsId, stopAllId, facesId, cardName){
+  document.getElementById(btnId).addEventListener('click', function(){
+    var sel=document.getElementById(selId);var member=sel.value;
+    if(!member){sel.style.border='2px solid #eb5a46';setTimeout(function(){sel.style.border='1px solid #c1c7d0';},1200);return;}
+    var key=rowsId+'__'+member;
+    if(timers[key])return;
+    sel.value='';
+    addMemberRow(key, member, rowsId, stopAllId, facesId, cardName);
+  });
+
+  document.getElementById(stopAllId).addEventListener('click', function(){
+    var rows=document.getElementById(rowsId);
+    Array.from(rows.children).forEach(function(rowEl){
+      if(rowEl.dataset.state!=='running')return;
+      var member=rowEl.dataset.member;var key=rowsId+'__'+member;
+      if(timers[key]){clearInterval(timers[key].iv);var elapsed=timers[key].accumulated+Math.floor((Date.now()-timers[key].start)/1000);timers[key].accumulated=elapsed;timers[key].start=null;timers[key].iv=null;addLog(member,cardName,elapsed,false);}
+      setRowPaused(rowEl,rowsId,facesId);
+    });
+    updateStopAllBtn(rowsId,stopAllId);
+  });
+}
+
+buildSettings();
+refreshAllSelects();
+setup('sel1','addbtn1','rows1','stopall1','faces1','10tトラック 車検');
+setup('sel2','addbtn2','rows2','stopall2','faces2','4tトラック エンジン修理');
+setup('sel3','addbtn3','rows3','stopall3','faces3','2tトラック 定期点検');
+</script>
