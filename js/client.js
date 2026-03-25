@@ -1,14 +1,22 @@
-window.TrelloPowerUp.initialize({
-  // カードの裏面にセクション（作業者リストなど）を表示する
-  'card-back-section': function(t, opts) {
-    return {
-      title: '工数タイマー',
-      icon: 'https://cdn.hyperdev.com/us-east-1%3A3d31b21c-011a-4fc2-adbd-b863c06581a8%2Fclock.svg',
-      content: {
-        type: 'iframe',
-        url: t.signUrl('./card-back.html'), // UIの本体
-        height: 600 // 画像のUIは縦に長いので少し高めに設定
+TrelloPowerUp.initialize({
+  // ボードの右上にボタンを配置する命令
+  'board-buttons': function(t, options) {
+    return [{
+      icon: {
+        dark: 'https://cdn-icons-png.flaticon.com/16/2088/2088617.png', // 仮の時計アイコン
+        light: 'https://cdn-icons-png.flaticon.com/16/2088/2088617.png'
+      },
+      text: '作業タイマー',
+      callback: function(t) {
+        // ボタンが押されたら、モーダル（ポップアップ）を開く
+        return t.modal({
+          url: './timer.html', // あなたが作ったHTMLを呼び出す
+          accentColor: '#0079bf',
+          height: 650, // 画面の高さ
+          fullscreen: false,
+          title: '一括タイマー管理' // ポップアップの上のタイトル
+        });
       }
-    };
+    }];
   }
 });
