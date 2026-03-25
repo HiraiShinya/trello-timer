@@ -1,65 +1,70 @@
-
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-.board{background:#0079bf;padding:16px;border-radius:8px;}
-.section-label{font-size:11px;color:#fff;opacity:0.8;font-weight:500;margin-bottom:6px;}
-.settings-box{background:rgba(255,255,255,0.15);border-radius:6px;padding:10px 12px;margin-bottom:12px;}
-.settings-title{font-size:12px;color:#fff;font-weight:500;margin-bottom:8px;}
-.member-settings{display:flex;flex-wrap:wrap;gap:8px;}
-.member-setting-item{background:#fff;border-radius:6px;padding:8px 10px;display:flex;align-items:center;gap:8px;min-width:140px;}
-.photo-upload-area{width:36px;height:36px;border-radius:50%;border:2px dashed #c1c7d0;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;position:relative;}
-.photo-upload-area img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-.photo-upload-area input{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;}
-.photo-placeholder{font-size:16px;color:#c1c7d0;}
-.member-setting-name{font-size:12px;color:#172b4d;font-weight:500;}
-.member-setting-hint{font-size:10px;color:#888;margin-top:1px;}
-.list{background:#ebecf0;border-radius:6px;padding:8px;width:100%;}
-.list-title{font-size:13px;font-weight:500;color:#172b4d;padding:4px 8px 10px;}
-.card{background:#fff;border-radius:6px;padding:10px 12px;margin-bottom:10px;border:1px solid #dfe1e6;}
-.card-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
-.card-icon{width:38px;height:38px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.card-meta{flex:1;}
-.card-title{font-size:13px;color:#172b4d;font-weight:500;margin-bottom:4px;}
-.active-faces{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;min-height:0;}
-.face-chip{width:28px;height:28px;border-radius:50%;overflow:hidden;border:2px solid #fff;box-shadow:0 0 0 1px #dfe1e6;flex-shrink:0;background:#f4f5f7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;}
-.face-chip img{width:100%;height:100%;object-fit:cover;}
-.label{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:500;margin-bottom:4px;display:inline-block;}
-.lbl-y{background:#f5dd29;color:#7a5800;}
-.lbl-r{background:#eb5a46;color:#7a1a0d;}
-.lbl-g{background:#61bd4f;color:#1d6127;}
-.add-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
-.member-sel{font-size:12px;padding:3px 6px;border-radius:4px;border:1px solid #c1c7d0;background:#f4f5f7;color:#172b4d;height:28px;cursor:pointer;}
-.btn-add{font-size:12px;padding:0 12px;border-radius:4px;border:none;background:#0079bf;color:#fff;cursor:pointer;height:28px;white-space:nowrap;font-weight:500;}
-.btn-add:hover{background:#005fa3;}
-.btn-stopall{font-size:12px;padding:0 12px;border-radius:4px;border:none;background:#172b4d;color:#fff;cursor:pointer;height:28px;white-space:nowrap;font-weight:500;display:none;}
-.btn-stopall:hover{background:#091e42;}
-.timer-row{display:flex;align-items:center;gap:6px;border-radius:4px;padding:5px 8px;margin-bottom:4px;}
-.timer-row.running{background:#f4f5f7;}
-.timer-row.paused{background:#fff3f3;border:1px solid #ffd5d0;}
-.t-avatar{width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#e0e2e6;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;}
-.t-avatar img{width:100%;height:100%;object-fit:cover;}
-.timer-name{font-size:12px;color:#172b4d;font-weight:500;flex:1;}
-.status-badge{font-size:10px;padding:1px 6px;border-radius:3px;white-space:nowrap;}
-.badge-running{background:#e3fcef;color:#006644;}
-.badge-paused{background:#fff0ec;color:#bf2600;}
-.timer-val{font-size:12px;font-weight:500;font-family:monospace;min-width:65px;text-align:right;}
-.timer-val.running{color:#eb5a46;}
-.timer-val.paused{color:#888;}
-.btn-toggle{font-size:11px;padding:0 8px;border-radius:3px;border:none;cursor:pointer;height:22px;white-space:nowrap;}
-.btn-running{background:#eb5a46;color:#fff;}
-.btn-running:hover{background:#c9372c;}
-.btn-paused{background:#0079bf;color:#fff;}
-.btn-paused:hover{background:#005fa3;}
-.log-box{background:rgba(255,255,255,0.15);border-radius:6px;padding:10px 12px;margin-top:12px;}
-.log-title{font-size:12px;color:#fff;font-weight:500;margin-bottom:6px;}
-.log-item{font-size:11px;color:#fff;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;}
-.log-item:last-child{border-bottom:none;}
-.empty-log{font-size:11px;color:rgba(255,255,255,0.5);}
-</style>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  .board{background:#0079bf;padding:16px;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .section-label{font-size:11px;color:#fff;opacity:0.8;font-weight:500;margin-bottom:6px;}
+  .settings-box{background:rgba(255,255,255,0.15);border-radius:6px;padding:10px 12px;margin-bottom:12px;}
+  .settings-title{font-size:12px;color:#fff;font-weight:500;margin-bottom:8px;}
+  .member-settings{display:flex;flex-wrap:wrap;gap:8px;}
+  .member-setting-item{background:#fff;border-radius:6px;padding:8px 10px;display:flex;align-items:center;gap:8px;min-width:140px;}
+  .photo-upload-area{width:36px;height:36px;border-radius:50%;border:2px dashed #c1c7d0;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;position:relative;}
+  .photo-upload-area img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+  .photo-upload-area input{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;}
+  .photo-placeholder{font-size:16px;color:#c1c7d0;}
+  .member-setting-name{font-size:12px;color:#172b4d;font-weight:500;}
+  .member-setting-hint{font-size:10px;color:#888;margin-top:1px;}
+  .list{background:#ebecf0;border-radius:6px;padding:8px;width:100%;}
+  .list-title{font-size:13px;font-weight:500;color:#172b4d;padding:4px 8px 10px;}
+  .card{background:#fff;border-radius:6px;padding:10px 12px;margin-bottom:10px;border:1px solid #dfe1e6;}
+  .card-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
+  .card-icon{width:38px;height:38px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+  .card-meta{flex:1;}
+  .card-title{font-size:13px;color:#172b4d;font-weight:500;margin-bottom:4px;}
+  .active-faces{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;min-height:0;}
+  .face-chip{width:28px;height:28px;border-radius:50%;overflow:hidden;border:2px solid #fff;box-shadow:0 0 0 1px #dfe1e6;flex-shrink:0;background:#f4f5f7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;}
+  .face-chip img{width:100%;height:100%;object-fit:cover;}
+  .label{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:500;margin-bottom:4px;display:inline-block;}
+  .lbl-y{background:#f5dd29;color:#7a5800;}
+  .lbl-r{background:#eb5a46;color:#7a1a0d;}
+  .lbl-g{background:#61bd4f;color:#1d6127;}
+  .add-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  .member-sel{font-size:12px;padding:3px 6px;border-radius:4px;border:1px solid #c1c7d0;background:#f4f5f7;color:#172b4d;height:28px;cursor:pointer;}
+  .btn-add{font-size:12px;padding:0 12px;border-radius:4px;border:none;background:#0079bf;color:#fff;cursor:pointer;height:28px;white-space:nowrap;font-weight:500;}
+  .btn-add:hover{background:#005fa3;}
+  .btn-stopall{font-size:12px;padding:0 12px;border-radius:4px;border:none;background:#172b4d;color:#fff;cursor:pointer;height:28px;white-space:nowrap;font-weight:500;display:none;}
+  .btn-stopall:hover{background:#091e42;}
+  .timer-row{display:flex;align-items:center;gap:6px;border-radius:4px;padding:5px 8px;margin-bottom:4px;}
+  .timer-row.running{background:#f4f5f7;}
+  .timer-row.paused{background:#fff3f3;border:1px solid #ffd5d0;}
+  .t-avatar{width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#e0e2e6;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;}
+  .t-avatar img{width:100%;height:100%;object-fit:cover;}
+  .timer-name{font-size:12px;color:#172b4d;font-weight:500;flex:1;}
+  .status-badge{font-size:10px;padding:1px 6px;border-radius:3px;white-space:nowrap;}
+  .badge-running{background:#e3fcef;color:#006644;}
+  .badge-paused{background:#fff0ec;color:#bf2600;}
+  .timer-val{font-size:12px;font-weight:500;font-family:monospace;min-width:65px;text-align:right;}
+  .timer-val.running{color:#eb5a46;}
+  .timer-val.paused{color:#888;}
+  .btn-toggle{font-size:11px;padding:0 8px;border-radius:3px;border:none;cursor:pointer;height:22px;white-space:nowrap;}
+  .btn-running{background:#eb5a46;color:#fff;}
+  .btn-running:hover{background:#c9372c;}
+  .btn-paused{background:#0079bf;color:#fff;}
+  .btn-paused:hover{background:#005fa3;}
+  .log-box{background:rgba(255,255,255,0.15);border-radius:6px;padding:10px 12px;margin-top:12px;}
+  .log-title{font-size:12px;color:#fff;font-weight:500;margin-bottom:6px;}
+  .log-item{font-size:11px;color:#fff;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;}
+  .log-item:last-child{border-bottom:none;}
+  .empty-log{font-size:11px;color:rgba(255,255,255,0.5);}
+  </style>
+</head>
+<body>
 
 <div class="board">
 
-  <!-- 顔写真設定エリア -->
   <div class="settings-box">
     <div class="settings-title">作業者 顔写真設定</div>
     <div class="member-settings" id="memberSettings"></div>
@@ -67,57 +72,11 @@
 
   <div class="list">
     <div class="list-title">作業中</div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-icon" style="background:#fff9e6;">🚛</div>
-        <div class="card-meta">
-          <span class="label lbl-y">車検</span>
-          <div class="card-title">10tトラック 車検（品川 あ 123）</div>
-        </div>
-      </div>
-      <div class="active-faces" id="faces1"></div>
-      <div class="add-row">
-        <select class="member-sel" id="sel1"><option value="">作業者を選択</option></select>
-        <button class="btn-add" id="addbtn1">+ 追加</button>
-        <button class="btn-stopall" id="stopall1">&#9646;&#9646; 全員停止</button>
-      </div>
-      <div id="rows1"></div>
+    
+    <div id="dynamic-cards-container">
+       <div style="padding:10px; font-size:12px; color:#5e6c84;">カードを読み込み中...</div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <div class="card-icon" style="background:#fff0ec;">🔧</div>
-        <div class="card-meta">
-          <span class="label lbl-r">修理</span>
-          <div class="card-title">4tトラック エンジン修理（品川 い 456）</div>
-        </div>
-      </div>
-      <div class="active-faces" id="faces2"></div>
-      <div class="add-row">
-        <select class="member-sel" id="sel2"><option value="">作業者を選択</option></select>
-        <button class="btn-add" id="addbtn2">+ 追加</button>
-        <button class="btn-stopall" id="stopall2">&#9646;&#9646; 全員停止</button>
-      </div>
-      <div id="rows2"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-icon" style="background:#e8f5e9;">🔍</div>
-        <div class="card-meta">
-          <span class="label lbl-g">点検</span>
-          <div class="card-title">2tトラック 定期点検（品川 う 789）</div>
-        </div>
-      </div>
-      <div class="active-faces" id="faces3"></div>
-      <div class="add-row">
-        <select class="member-sel" id="sel3"><option value="">作業者を選択</option></select>
-        <button class="btn-add" id="addbtn3">+ 追加</button>
-        <button class="btn-stopall" id="stopall3">&#9646;&#9646; 全員停止</button>
-      </div>
-      <div id="rows3"></div>
-    </div>
   </div>
 
   <div class="log-box">
@@ -211,9 +170,9 @@ function buildSettings(){
   });
 }
 
+// 動的生成されたプルダウンも更新できるように修正
 function refreshAllSelects(){
-  ['sel1','sel2','sel3'].forEach(function(selId){
-    var sel = document.getElementById(selId);
+  document.querySelectorAll('.member-sel').forEach(function(sel){
     var current = sel.value;
     sel.innerHTML = '<option value="">作業者を選択</option>';
     MEMBERS.forEach(function(name){
@@ -226,10 +185,14 @@ function refreshAllSelects(){
   });
 }
 
+// 動的生成されたカードの顔アイコンを更新できるように修正
 function refreshAllFaceChips(){
-  ['rows1','rows2','rows3'].forEach(function(rowsId, i){
-    var facesId = 'faces'+(i+1);
-    rebuildFaceChips(rowsId, facesId);
+  document.querySelectorAll('.card').forEach(function(cardEl){
+    var rowsEl = cardEl.querySelector('[id^="rows_"]');
+    var facesEl = cardEl.querySelector('.active-faces');
+    if(rowsEl && facesEl) {
+      rebuildFaceChips(rowsEl.id, facesEl.id);
+    }
   });
 }
 
@@ -386,9 +349,105 @@ function setup(selId, btnId, rowsId, stopAllId, facesId, cardName){
   });
 }
 
+// 初期化（顔写真設定エリアの構築）
 buildSettings();
-refreshAllSelects();
-setup('sel1','addbtn1','rows1','stopall1','faces1','10tトラック 車検');
-setup('sel2','addbtn2','rows2','stopall2','faces2','4tトラック エンジン修理');
-setup('sel3','addbtn3','rows3','stopall3','faces3','2tトラック 定期点検');
+
+
+// ==========================================
+// ここから Trello連携用の追加コード
+// ==========================================
+
+// Trelloと通信する準備
+var t = TrelloPowerUp.iframe();
+
+// 画面が開かれたときにTrelloからデータを取得する
+t.render(function(){
+  fetchTrelloCards();
+});
+
+function fetchTrelloCards() {
+  // ボード上の「すべてのリスト」と「すべてのカード」を取得
+  Promise.all([
+    t.lists('id', 'name'),
+    t.cards('id', 'name', 'idList', 'labels')
+  ]).then(function(values) {
+    var lists = values[0];
+    var cards = values[1];
+
+    // 「作業中」という名前のリストを探す
+    var targetList = lists.find(function(list) { return list.name === '作業中'; });
+
+    var container = document.getElementById('dynamic-cards-container');
+
+    if (!targetList) {
+      container.innerHTML = '<div style="padding:10px; font-size:12px; color:#eb5a46; background:#fff; border-radius:4px;">「作業中」という名前のリストが見つかりません。Trello上にリストを作成してください。</div>';
+      return;
+    }
+
+    // 「作業中」リストに入っているカードだけに絞り込む
+    var targetCards = cards.filter(function(card) { return card.idList === targetList.id; });
+
+    renderCards(targetCards);
+  });
+}
+
+function renderCards(cards) {
+  var container = document.getElementById('dynamic-cards-container');
+  container.innerHTML = ''; // 「読み込み中...」の文字を消す
+
+  if (cards.length === 0) {
+     container.innerHTML = '<div style="padding:10px; font-size:12px; color:#5e6c84; background:#fff; border-radius:4px;">現在「作業中」のタスクはありません。</div>';
+     return;
+  }
+
+  // 取得したカードの数だけ、HTMLの枠を自動生成する
+  cards.forEach(function(card) {
+    var cardId = card.id; // Trello固有のID
+    
+    // ラベルの色をTrelloから引き継ぐ（簡易版）
+    var labelHtml = '';
+    if (card.labels && card.labels.length > 0) {
+       var lbl = card.labels[0];
+       var colorClass = lbl.color === 'red' ? 'lbl-r' : (lbl.color === 'green' ? 'lbl-g' : 'lbl-y');
+       labelHtml = '<span class="label ' + colorClass + '">' + (lbl.name || 'ラベル') + '</span>';
+    }
+
+    // TrelloのカードごとのHTMLブロックを生成
+    var cardHtml = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:#f4f5f7;">📋</div>
+          <div class="card-meta">
+            ${labelHtml}
+            <div class="card-title">${card.name}</div>
+          </div>
+        </div>
+        <div class="active-faces" id="faces_${cardId}"></div>
+        <div class="add-row">
+          <select class="member-sel" id="sel_${cardId}"><option value="">作業者を選択</option></select>
+          <button class="btn-add" id="addbtn_${cardId}">+ 追加</button>
+          <button class="btn-stopall" id="stopall_${cardId}">&#9646;&#9646; 全員停止</button>
+        </div>
+        <div id="rows_${cardId}"></div>
+      </div>
+    `;
+    
+    // コンテナにHTMLを追加
+    container.insertAdjacentHTML('beforeend', cardHtml);
+
+    // 追加したセレクトボックスにメンバー一覧をセット
+    var sel = document.getElementById('sel_' + cardId);
+    MEMBERS.forEach(function(name){
+      var opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      sel.appendChild(opt);
+    });
+
+    // 既存のタイマーロジック（setup関数）を割り当て
+    setup('sel_' + cardId, 'addbtn_' + cardId, 'rows_' + cardId, 'stopall_' + cardId, 'faces_' + cardId, card.name);
+  });
+}
 </script>
+</body>
+</html>
