@@ -14,7 +14,6 @@
   .settings-title {font-size:12px; color:#fff; font-weight:500; margin-bottom:8px;}
   .member-settings {display:flex; flex-wrap:wrap; gap:8px;}
   
-  /* ★ ハイライト用のクリック可能なメンバースタイル */
   .member-setting-item {background:#fff; border-radius:6px; padding:6px 10px; display:flex; align-items:center; gap:8px; min-width:140px; cursor:pointer; border:2px solid transparent; transition:all 0.2s;}
   .member-setting-item:hover {border-color:#0079bf; transform:translateY(-1px);}
   .member-setting-item.highlight-active {background:#ff9800; border-color:#ff9800;}
@@ -40,6 +39,23 @@
   .lane-label {width:80px; background:#172b4d; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:14px; font-weight:bold; flex-shrink:0; cursor:pointer; user-select:none; gap:6px; transition:all 0.3s;}
   .lane-label:hover {background:#091e42;}
   .toggle-icon {font-size:11px; opacity:0.8;}
+
+  /* ★レーンを閉じた時の件数表示バッジ */
+  .card-count-badge {
+    display: none;
+    background: #eb5a46; /* 赤で目立たせる */
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  /* レーンが閉じていて、かつ「has-cards」クラスがある時だけ表示 */
+  .lane-row.collapsed .card-count-badge.has-cards {
+    display: inline-block;
+  }
 
   .dropzone {flex:1; padding:8px; display:flex; flex-wrap:wrap; gap:8px; background:#fafbfc; align-content:flex-start;}
   .dropzone.highlight {background:#e6fcff;} 
@@ -104,7 +120,6 @@
   .btn-running {background: #eb5a46; color: #fff;}
   .btn-paused {background: #0079bf; color: #fff;}
 
-  /* ピカピカ光る作業中バッジ */
   .working-badge {position: absolute; top: -10px; left: -10px; background: #ff7b00; color: #fff; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: none; z-index: 10; animation: blinker 1s linear infinite;}
   @keyframes blinker { 50% { opacity: 0.3; } }
   .card-item.is-working .working-badge {display: block;}
@@ -113,21 +128,11 @@
   .t-avatar {width: 20px; height: 20px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: #fff; flex-shrink: 0;}
   .t-avatar img {width: 100%; height: 100%; object-fit: cover;}
 
-  /* ========================================================
-     ★ ハイライト機能のCSSマジック 
-     ======================================================== */
-  /* ハイライトモード中、対象外のカードは暗くする */
+  /* ハイライト用CSS */
   body.has-highlight .card-item { opacity: 0.25; filter: grayscale(50%); pointer-events: none; }
-  
-  /* ハイライト対象のカードは目立たせる */
   body.has-highlight .card-item.highlight-active { opacity: 1; filter: none; transform: scale(1.02); z-index: 100; border: 2px solid #ff9800; box-shadow: 0 8px 16px rgba(255,152,0,0.3); pointer-events: auto; }
-  
-  /* 対象のメンバースロットだけ特別に光らせる */
   body.has-highlight .member-slot.highlight-active { box-shadow: 0 0 0 3px #ff9800, inset 0 0 10px rgba(255,152,0,0.3); background: #fff8e1; border-color: #ff9800; }
-  
-  /* レーンのラベルの制御 */
   body.has-highlight .lane-label { opacity: 0.4; }
-  /* もしハイライト対象のカードがそのレーンに入っていれば、ラベルをオレンジにして教える */
   body.has-highlight .lane-row.highlight-active .lane-label { opacity: 1; background: #ff9800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
   </style>
 </head>
@@ -187,13 +192,13 @@
   let currentFirebaseTimers = {};
   let currentPositions = {}; 
   let localTimers = {}; 
-  
-  // ★ハイライト機能用の変数
   let currentHighlightMember = null; 
 
   var t = window.TrelloPowerUp.iframe();
 
-  // レーン生成
+  // ==========================================
+  // ★ レーン生成（件数バッジを追加）
+  // ==========================================
   const lanesContainer = document.getElementById('lanesContainer');
   const allZones = ['zone_unassigned', 'zone_hold'];
 
@@ -210,6 +215,7 @@
         <div class="lane-label" data-lane="${i}">
           <span>${i}レーン</span>
           <span class="toggle-icon">${iconTxt}</span>
+          <span class="card-count-badge" id="count_badge_${zoneId}">0件</span>
         </div>
         <div class="dropzone" id="${zoneId}"></div>
       </div>
@@ -322,11 +328,34 @@
     renderAllTimers();
   }
 
+  // ==========================================
+  // ★ カード位置同期と同時に各レーンの件数を計算
+  // ==========================================
   function syncCardPositions() {
     document.querySelectorAll('.card-item').forEach(cardEl => {
       let targetZone = document.getElementById(currentPositions[cardEl.dataset.cardId] || 'zone_unassigned');
       if (targetZone && cardEl.parentElement !== targetZone) targetZone.appendChild(cardEl);
     });
+    
+    // 全レーンのカード件数バッジを更新
+    updateLaneCounts();
+  }
+
+  function updateLaneCounts() {
+    for(let i=1; i<=15; i++) {
+      let zoneId = 'zone_lane_' + i;
+      let dropzone = document.getElementById(zoneId);
+      let badge = document.getElementById('count_badge_' + zoneId);
+      if (dropzone && badge) {
+        let count = dropzone.querySelectorAll('.card-item').length;
+        badge.textContent = count + '件';
+        if (count > 0) {
+          badge.classList.add('has-cards');
+        } else {
+          badge.classList.remove('has-cards');
+        }
+      }
+    }
   }
 
   function addMemberToCard(cardId, cardName, member) {
@@ -426,14 +455,13 @@
         }
     });
 
-    // ★ 描画が終わった後にハイライトを再適用（リアルタイム更新対応）
     applyHighlight();
   }
 
   function updateSlotVisuals(slotEl, key, data) {
     if (slotEl.dataset.key !== key) {
       slotEl.dataset.key = key;
-      slotEl.dataset.assignedMember = data.member; // ハイライト用に記録
+      slotEl.dataset.assignedMember = data.member; 
       slotEl.innerHTML = `
         <div class="slot-avatar-wrap" style="margin-bottom:2px;"></div>
         <div class="slot-name">${data.member}</div>
@@ -480,9 +508,6 @@
     }
   }
 
-  // ==========================================
-  // ★ ハイライト（検索）機能のロジック
-  // ==========================================
   function buildSettings(){
     var container = document.getElementById('memberSettings'); container.innerHTML = '';
     MEMBERS.forEach(name => {
@@ -512,50 +537,38 @@
       info.appendChild(nm); info.appendChild(hint);
       item.appendChild(uploadArea); item.appendChild(info); container.appendChild(item);
 
-      // ★ 名前や枠の余白をタップした時のハイライト切り替え
       item.addEventListener('click', (e) => {
-        if(e.target.closest('.photo-upload-area')) return; // 写真変更のタップは無視
+        if(e.target.closest('.photo-upload-area')) return; 
         if(currentHighlightMember === name) currentHighlightMember = null;
         else currentHighlightMember = name;
         applyHighlight();
       });
     });
-    // 再描画時にもハイライト状態を維持
     applyHighlight();
   }
 
   function applyHighlight() {
-      // 1. 全てのリセット
       document.body.classList.remove('has-highlight');
       document.querySelectorAll('.highlight-active').forEach(el => el.classList.remove('highlight-active'));
 
-      if (!currentHighlightMember) return; // ハイライトオフならここで終了
+      if (!currentHighlightMember) return; 
 
-      // 2. ハイライトモードの起動
       document.body.classList.add('has-highlight');
       
-      // 3. 上部の設定アイテムを光らせる
       let activeSetting = document.getElementById('setting_' + currentHighlightMember);
       if (activeSetting) activeSetting.classList.add('highlight-active');
 
-      // 4. アサインされているカードとスロットを探して光らせる
       document.querySelectorAll('.member-slot').forEach(slot => {
           if (slot.dataset.assignedMember === currentHighlightMember) {
               slot.classList.add('highlight-active');
-              
-              // そのカード全体を光らせる
               let cardEl = slot.closest('.card-item');
               if (cardEl) cardEl.classList.add('highlight-active');
-
-              // そのレーンのラベルも光らせる（閉じていても気づけるように）
               let laneRow = slot.closest('.lane-row');
               if (laneRow) laneRow.classList.add('highlight-active');
           }
       });
   }
 
-
-  // ユーティリティ
   function getColor(n){if(!memberColors[n]){memberColors[n]=palettes[colorIdx%palettes.length];colorIdx++;}return memberColors[n];}
   function fmt(s){return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor((s%3600)/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
   function makeAvatarEl(member, size){
