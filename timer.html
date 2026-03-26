@@ -25,13 +25,10 @@
   
   /* 左側：レーン */
   .lanes-panel {flex:2.5; display:flex; flex-direction:column; gap:8px; overflow-y:auto; padding-right:8px;}
-  
-  /* ★レーンの縦幅調整と開閉スタイル */
   .lane-row {display:flex; background:#fff; border:1px solid #dfe1e6; border-radius:6px; overflow:hidden; min-height:160px; transition:min-height 0.2s;}
   .lane-row.collapsed {min-height: 48px !important;}
   .lane-row.collapsed .dropzone {display: none;}
   
-  /* ★レーンラベル（タップ領域） */
   .lane-label {width:80px; background:#172b4d; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:14px; font-weight:bold; flex-shrink:0; cursor:pointer; user-select:none; gap:6px; transition:background 0.2s;}
   .lane-label:hover {background:#091e42;}
   .toggle-icon {font-size:11px; opacity:0.8;}
@@ -69,7 +66,6 @@
   .card-header {font-size: 12px; font-weight: bold; color: #172b4d; word-break: break-word; margin-bottom: 6px;}
   .card-body {display: flex; flex-direction: column; margin-top: auto;}
   
-  /* タブレット対応：横スクロール可能なメンバ追加ボタンリスト */
   .quick-member-list {
     display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; 
     -webkit-overflow-scrolling: touch; margin-top: auto; margin-bottom: 6px;
@@ -87,10 +83,13 @@
   .quick-add-btn.added { opacity: 0.4; cursor: not-allowed; box-shadow: none; background: #fafbfc; border-color: #ebecf0;}
   .quick-add-btn .t-avatar { width: 18px; height: 18px; font-size: 8px; margin-right: 4px; }
 
-  .btn-stopall {
-    font-size: 11px; padding: 6px 0; background: #172b4d; color: #fff; 
+  /* ★ 全員停止／再開のトグルボタン */
+  .btn-batch {
+    font-size: 11px; padding: 6px 0; color: #fff; 
     border: none; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; display:none;
   }
+  .btn-batch.stop { background: #172b4d; }
+  .btn-batch.resume { background: #0079bf; }
 
   /* 右側（メンバー4枠の2x2グリッド） */
   .card-right {width: 150px; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; flex-shrink: 0;}
@@ -115,7 +114,7 @@
   @keyframes blinker { 50% { opacity: 0.3; } }
   .card-item.is-working .working-badge {display: block;}
 
-  /* 未割当と保留エリアでは再開ボタンを非表示 */
+  /* 未割当と保留エリアでは個別の再開ボタンも非表示 */
   #zone_unassigned .btn-paused, #zone_hold .btn-paused {display: none !important;}
 
   /* アバター */
@@ -170,7 +169,6 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  // 作業メンバーのリスト
   var MEMBERS = ['田中','佐藤','鈴木','山田', '伊藤', '渡辺']; 
   var memberPhotos = {};
   var colorIdx = 0;
@@ -183,9 +181,7 @@
 
   var t = window.TrelloPowerUp.iframe();
 
-  // ==========================================
-  // ★ レーン生成（開閉状態の復元処理を追加）
-  // ==========================================
+  // レーン生成
   const lanesContainer = document.getElementById('lanesContainer');
   const allZones = ['zone_unassigned', 'zone_hold'];
 
@@ -193,7 +189,6 @@
     const zoneId = 'zone_lane_' + i;
     allZones.push(zoneId);
     
-    // ブラウザから前回の開閉状態を読み込む
     let isCollapsed = localStorage.getItem('lane_collapsed_' + i) === 'true';
     let collapsedClass = isCollapsed ? ' collapsed' : '';
     let iconTxt = isCollapsed ? '▶' : '▼';
@@ -209,7 +204,6 @@
     `);
   }
 
-  // ★ レーンラベルをタップした時の開閉アクション
   document.querySelectorAll('.lane-label').forEach(label => {
     label.addEventListener('click', () => {
       let laneNum = label.dataset.lane;
@@ -220,7 +214,6 @@
       let isCollapsed = row.classList.contains('collapsed');
       
       icon.textContent = isCollapsed ? '▶' : '▼';
-      // ブラウザに開閉状態を保存
       localStorage.setItem('lane_collapsed_' + laneNum, isCollapsed);
     });
   });
@@ -277,7 +270,9 @@
             <div class="card-body">
               <div style="font-size:10px; color:#888; margin-bottom:2px;">タップでアサイン（横スクロール可）</div>
               <div class="quick-member-list" id="quick_${cardId}"></div>
-              <button class="btn-stopall" id="stopall_${cardId}">全員のタイマーを停止</button>
+              
+              <button class="btn-batch" id="batch_${cardId}"></button>
+
             </div>
           </div>
 
@@ -312,7 +307,10 @@
         quickList.appendChild(btn);
       });
 
-      document.getElementById('stopall_' + cardId).addEventListener('click', () => { stopAllTimersForCard(cardId); });
+      // 一括ボタンのクリックイベント
+      document.getElementById('batch_' + cardId).addEventListener('click', () => { 
+        toggleBatchTimersForCard(cardId); 
+      });
     });
 
     syncCardPositions();
@@ -346,6 +344,24 @@
       addLogToFirebase(member, cardName, 0, initialState === 'running');
   }
 
+  // ★ 追加：一括停止／再開の振り分けロジック
+  function toggleBatchTimersForCard(cardId) {
+      let runningCount = 0;
+      for (let k in currentFirebaseTimers) {
+          if (currentFirebaseTimers[k].cardId === cardId && currentFirebaseTimers[k].state === 'running') {
+              runningCount++;
+          }
+      }
+      
+      if (runningCount > 0) {
+          // 1人でも動いていれば「一括停止」を実行
+          stopAllTimersForCard(cardId);
+      } else {
+          // 全員止まっていれば「一括再開」を実行
+          resumeAllTimersForCard(cardId);
+      }
+  }
+
   function stopAllTimersForCard(cardId) {
     for (let key in currentFirebaseTimers) {
       let data = currentFirebaseTimers[key];
@@ -353,6 +369,21 @@
         let elapsed = data.accumulated + Math.floor((Date.now() - data.startTime) / 1000);
         update(ref(db, 'timers/' + key), { state: 'paused', accumulated: elapsed, startTime: null });
         addLogToFirebase(data.member, data.cardName, elapsed, false);
+      }
+    }
+  }
+
+  // ★ 追加：一括再開のロジック
+  function resumeAllTimersForCard(cardId) {
+    let currentZone = currentPositions[cardId] || 'zone_unassigned';
+    // 保留と未割当エリアでは再開を許可しない
+    if (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') return; 
+
+    for (let key in currentFirebaseTimers) {
+      let data = currentFirebaseTimers[key];
+      if (data.cardId === cardId && data.state === 'paused') {
+        update(ref(db, 'timers/' + key), { state: 'running', startTime: Date.now() });
+        addLogToFirebase(data.member, data.cardName, data.accumulated, true);
       }
     }
   }
@@ -403,8 +434,30 @@
         if (isWorking) cardEl.classList.add('is-working');
         else cardEl.classList.remove('is-working');
         
-        let btnStop = document.getElementById('stopall_' + cardId);
-        if(btnStop) btnStop.style.display = runningCount >= 2 ? 'block' : 'none';
+        // ★ 一括ボタンの表示とテキスト切り替え制御
+        let btnBatch = document.getElementById('batch_' + cardId);
+        if(btnBatch) {
+            if (runningCount > 0) {
+                // 1人でも動いていれば「停止」モード
+                btnBatch.style.display = 'block';
+                btnBatch.className = 'btn-batch stop';
+                btnBatch.textContent = '全員のタイマーを停止';
+            } else if (timers.length > 0) {
+                // 全員止まっていて、メンバーが存在する場合「再開」モード
+                let currentZone = currentPositions[cardId] || 'zone_unassigned';
+                // ただし未割当・保留中はボタンを隠す
+                if (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') {
+                    btnBatch.style.display = 'none';
+                } else {
+                    btnBatch.style.display = 'block';
+                    btnBatch.className = 'btn-batch resume';
+                    btnBatch.textContent = '全員のタイマーを再開';
+                }
+            } else {
+                // 誰もいない場合は隠す
+                btnBatch.style.display = 'none';
+            }
+        }
     });
   }
 
