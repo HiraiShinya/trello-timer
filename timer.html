@@ -25,8 +25,17 @@
   
   /* 左側：レーン */
   .lanes-panel {flex:2.5; display:flex; flex-direction:column; gap:8px; overflow-y:auto; padding-right:8px;}
-  .lane-row {display:flex; background:#fff; border:1px solid #dfe1e6; border-radius:6px; overflow:hidden; min-height:100px;}
-  .lane-label {width:80px; background:#172b4d; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; flex-shrink:0;}
+  
+  /* ★レーンの縦幅調整と開閉スタイル */
+  .lane-row {display:flex; background:#fff; border:1px solid #dfe1e6; border-radius:6px; overflow:hidden; min-height:160px; transition:min-height 0.2s;}
+  .lane-row.collapsed {min-height: 48px !important;}
+  .lane-row.collapsed .dropzone {display: none;}
+  
+  /* ★レーンラベル（タップ領域） */
+  .lane-label {width:80px; background:#172b4d; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:14px; font-weight:bold; flex-shrink:0; cursor:pointer; user-select:none; gap:6px; transition:background 0.2s;}
+  .lane-label:hover {background:#091e42;}
+  .toggle-icon {font-size:11px; opacity:0.8;}
+
   .dropzone {flex:1; padding:8px; display:flex; flex-wrap:wrap; gap:8px; background:#fafbfc; align-content:flex-start;}
   .dropzone.highlight {background:#e6fcff;} 
 
@@ -60,7 +69,7 @@
   .card-header {font-size: 12px; font-weight: bold; color: #172b4d; word-break: break-word; margin-bottom: 6px;}
   .card-body {display: flex; flex-direction: column; margin-top: auto;}
   
-  /* ★タブレット対応：横スクロール可能なメンバ追加ボタンリスト */
+  /* タブレット対応：横スクロール可能なメンバ追加ボタンリスト */
   .quick-member-list {
     display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; 
     -webkit-overflow-scrolling: touch; margin-top: auto; margin-bottom: 6px;
@@ -174,21 +183,49 @@
 
   var t = window.TrelloPowerUp.iframe();
 
-  // レーン生成
+  // ==========================================
+  // ★ レーン生成（開閉状態の復元処理を追加）
+  // ==========================================
   const lanesContainer = document.getElementById('lanesContainer');
   const allZones = ['zone_unassigned', 'zone_hold'];
 
   for(let i=1; i<=15; i++) {
     const zoneId = 'zone_lane_' + i;
     allZones.push(zoneId);
+    
+    // ブラウザから前回の開閉状態を読み込む
+    let isCollapsed = localStorage.getItem('lane_collapsed_' + i) === 'true';
+    let collapsedClass = isCollapsed ? ' collapsed' : '';
+    let iconTxt = isCollapsed ? '▶' : '▼';
+
     lanesContainer.insertAdjacentHTML('beforeend', `
-      <div class="lane-row">
-        <div class="lane-label">${i}レーン</div>
+      <div class="lane-row${collapsedClass}">
+        <div class="lane-label" data-lane="${i}">
+          <span>${i}レーン</span>
+          <span class="toggle-icon">${iconTxt}</span>
+        </div>
         <div class="dropzone" id="${zoneId}"></div>
       </div>
     `);
   }
 
+  // ★ レーンラベルをタップした時の開閉アクション
+  document.querySelectorAll('.lane-label').forEach(label => {
+    label.addEventListener('click', () => {
+      let laneNum = label.dataset.lane;
+      let row = label.parentElement;
+      let icon = label.querySelector('.toggle-icon');
+      
+      row.classList.toggle('collapsed');
+      let isCollapsed = row.classList.contains('collapsed');
+      
+      icon.textContent = isCollapsed ? '▶' : '▼';
+      // ブラウザに開閉状態を保存
+      localStorage.setItem('lane_collapsed_' + laneNum, isCollapsed);
+    });
+  });
+
+  // Sortable.jsの初期化
   allZones.forEach(zoneId => {
     let sortableGroup = { name: 'shared' };
     if (zoneId === 'zone_unassigned') sortableGroup.put = false;
@@ -254,31 +291,27 @@
       `;
       factory.insertAdjacentHTML('beforeend', cardHtml);
 
-      // タブレット用ワンタップボタンの生成
       var quickList = document.getElementById('quick_' + cardId);
       MEMBERS.forEach(name => {
         var btn = document.createElement('button');
         btn.className = 'quick-add-btn';
-        btn.dataset.memberName = name; // ボタンの状態管理用
+        btn.dataset.memberName = name; 
         
-        // アバターを追加
         var avatar = makeAvatarEl(name, 18);
         avatar.dataset.member = name; 
         btn.appendChild(avatar);
         
-        // 名前を追加
         var nameSpan = document.createElement('span');
         nameSpan.textContent = name;
         btn.appendChild(nameSpan);
 
         btn.addEventListener('click', () => {
-           if(btn.classList.contains('added')) return; // 既に追加済みの場合は無効
+           if(btn.classList.contains('added')) return; 
            addMemberToCard(cardId, card.name, name);
         });
         quickList.appendChild(btn);
       });
 
-      // 全停止ボタンの設定
       document.getElementById('stopall_' + cardId).addEventListener('click', () => { stopAllTimersForCard(cardId); });
     });
 
@@ -293,7 +326,6 @@
     });
   }
 
-  // ★分離したメンバー追加関数
   function addMemberToCard(cardId, cardName, member) {
       let activeCount = 0;
       for (let k in currentFirebaseTimers) {
@@ -340,7 +372,6 @@
         let isWorking = false;
         let runningCount = 0;
 
-        // 右側の4枠（0〜3）の処理
         for (let i = 0; i < 4; i++) {
             let slotEl = document.getElementById(`slot_${cardId}_${i}`);
             if (!slotEl) continue;
@@ -360,7 +391,6 @@
             }
         }
 
-        // ★タブレット用ワンタップボタンのグレーアウト処理
         let activeMembers = timers.map(t => t.data.member);
         cardEl.querySelectorAll('.quick-add-btn').forEach(btn => {
             if (activeMembers.includes(btn.dataset.memberName)) {
@@ -370,11 +400,9 @@
             }
         });
 
-        // ピカピカバッジのオンオフ
         if (isWorking) cardEl.classList.add('is-working');
         else cardEl.classList.remove('is-working');
         
-        // 全停止ボタンの表示制御
         let btnStop = document.getElementById('stopall_' + cardId);
         if(btnStop) btnStop.style.display = runningCount >= 2 ? 'block' : 'none';
     });
@@ -390,7 +418,7 @@
         <button class="btn-toggle"></button>
       `;
       let av = makeAvatarEl(data.member, 18);
-      av.dataset.member = data.member; // 顔写真更新用
+      av.dataset.member = data.member; 
       slotEl.querySelector('.slot-avatar-wrap').appendChild(av);
       slotEl.querySelector('.btn-toggle').addEventListener('click', () => { toggleFirebaseTimer(key); });
     }
@@ -435,7 +463,6 @@
     }
   }
 
-  // ユーティリティ関数
   function getColor(n){if(!memberColors[n]){memberColors[n]=palettes[colorIdx%palettes.length];colorIdx++;}return memberColors[n];}
   function fmt(s){return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor((s%3600)/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
   function makeAvatarEl(member, size){
