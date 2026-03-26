@@ -20,7 +20,7 @@
   .photo-placeholder {font-size:14px; color:#c1c7d0;}
   .member-setting-name {font-size:11px; color:#172b4d; font-weight:500;}
 
-  /* メインのレイアウト（左：レーン、右：保留＆ログ、下：未割当） */
+  /* メインのレイアウト */
   .main-board {display:flex; flex:1; overflow:hidden; padding:12px; gap:12px;}
   
   /* 左側：15レーンエリア */
@@ -28,7 +28,7 @@
   .lane-row {display:flex; background:#fff; border:1px solid #dfe1e6; border-radius:6px; overflow:hidden; min-height:100px;}
   .lane-label {width:80px; background:#172b4d; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; flex-shrink:0;}
   .dropzone {flex:1; padding:8px; display:flex; flex-wrap:wrap; gap:8px; background:#fafbfc; align-content:flex-start;}
-  .dropzone.highlight {background:#e6fcff;} /* ドラッグ中の色 */
+  .dropzone.highlight {background:#e6fcff;} 
 
   /* 右側：保留エリアとログ */
   .right-panel {flex:1; display:flex; flex-direction:column; gap:12px; overflow-y:auto;}
@@ -47,11 +47,36 @@
   .bottom-panel .area-title {background:#abf5d1; color:#006644;}
   .unassigned-dropzone {flex:1; padding:12px; display:flex; flex-wrap:wrap; gap:8px; overflow-y:auto; align-content:flex-start;}
 
-  /* 案件カードのデザイン（コンパクト化） */
-  .card-item {width:260px; background:#fff; border:1px solid #c1c7d0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1); display:flex; flex-direction:column; cursor:grab;}
+  /* ★案件カードのデザイン */
+  .card-item {width:260px; background:#fff; border:1px solid #c1c7d0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1); display:flex; flex-direction:column; cursor:grab; position:relative;}
   .card-item:active {cursor:grabbing;}
   .card-header {padding:8px; border-bottom:1px solid #ebecf0; font-size:12px; font-weight:bold; color:#172b4d; word-break:break-word;}
   .card-body {padding:8px;}
+  
+  /* ★ピカピカ光る作業中バッジ */
+  .working-badge {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    background: #ff7b00; /* オレンジ色 */
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: none; /* デフォルトは非表示 */
+    z-index: 10;
+    animation: blinker 1s linear infinite;
+  }
+  @keyframes blinker {
+    50% { opacity: 0.3; }
+  }
+  /* カードが作業中の時だけバッジを表示 */
+  .card-item.is-working .working-badge {
+    display: block;
+  }
+
   .add-row {display:flex; gap:4px; margin-bottom:8px;}
   .member-sel {flex:1; font-size:11px; padding:2px; border:1px solid #dfe1e6; border-radius:3px;}
   .btn-add {font-size:11px; padding:0 8px; background:#0079bf; color:#fff; border:none; border-radius:3px; cursor:pointer; height:24px;}
@@ -66,6 +91,12 @@
   .btn-running {background:#eb5a46; color:#fff;}
   .btn-paused {background:#0079bf; color:#fff;}
 
+  /* ★未割当と保留エリアでは再開ボタンを非表示にする */
+  #zone_unassigned .btn-paused,
+  #zone_hold .btn-paused {
+    display: none !important;
+  }
+
   /* アバター */
   .t-avatar {width:20px; height:20px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:bold; color:#fff;}
   .t-avatar img {width:100%; height:100%; object-fit:cover;}
@@ -79,12 +110,11 @@
 </div>
 
 <div class="main-board">
-  <div class="lanes-panel" id="lanesContainer">
-    </div>
+  <div class="lanes-panel" id="lanesContainer"></div>
 
   <div class="right-panel">
     <div class="hold-area">
-      <div class="area-title">⏸️ 作業保留中（ここに置くとタイマー自動停止）</div>
+      <div class="area-title">⏸️ 作業保留中（ここに置くとタイマー自動停止＆再開不可）</div>
       <div class="hold-dropzone" id="zone_hold"></div>
     </div>
     
@@ -96,7 +126,7 @@
 </div>
 
 <div class="bottom-panel">
-  <div class="area-title">📥 未割当案件（Trelloの「作業中」リストから読み込み）</div>
+  <div class="area-title">📥 未割当案件（レーンに移動してください。ここへ戻すことはできません）</div>
   <div class="unassigned-dropzone" id="zone_unassigned">
     <div style="font-size:12px; color:#5e6c84;">Trelloからカードを読み込み中...</div>
   </div>
@@ -122,14 +152,14 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  var MEMBERS = ['田中','佐藤','鈴木','山田', '伊藤', '渡辺']; // 必要に応じて追加
+  var MEMBERS = ['田中','佐藤','鈴木','山田', '伊藤', '渡辺']; 
   var memberPhotos = {};
   var colorIdx = 0;
   var memberColors = {};
   var palettes = [{bg:'#B5D4F4',fg:'#0C447C'},{bg:'#9FE1CB',fg:'#085041'},{bg:'#F5C4B3',fg:'#712B13'},{bg:'#FAC775',fg:'#633806'},{bg:'#C0DD97',fg:'#27500A'}];
   
   let currentFirebaseTimers = {};
-  let currentPositions = {}; // カードの場所（zone_xxx）を記録
+  let currentPositions = {}; 
   let localTimers = {}; 
 
   var t = window.TrelloPowerUp.iframe();
@@ -151,21 +181,27 @@
     `);
   }
 
-  // Sortable.jsの初期化（全ゾーンを連携）
+  // Sortable.jsの初期化
   allZones.forEach(zoneId => {
+    let sortableGroup = { name: 'shared' };
+    
+    // ★追加ルール：未割当エリアには戻せない（put: false）
+    if (zoneId === 'zone_unassigned') {
+      sortableGroup.put = false;
+    }
+
     new Sortable(document.getElementById(zoneId), {
-      group: 'shared', // これでエリア間の移動が可能に
+      group: sortableGroup,
       animation: 150,
       ghostClass: 'highlight',
       onEnd: function (evt) {
         const itemEl = evt.item; 
-        const toZone = evt.to.id; // ドロップ先のID
+        const toZone = evt.to.id;
         const cardId = itemEl.dataset.cardId;
         
-        // Firebaseに「カードが移動したよ」と記録
         set(ref(db, 'positions/' + cardId), toZone);
 
-        // ★魔法の機能：保留エリアに入ったらタイマー全停止！
+        // 保留エリアに入ったらタイマー全停止
         if (toZone === 'zone_hold') {
            stopAllTimersForCard(cardId);
         }
@@ -192,7 +228,6 @@
     renderLogs(snapshot.val() || {});
   });
 
-  // 🚚 場所の同期監視
   onValue(ref(db, 'positions'), (snapshot) => {
     currentPositions = snapshot.val() || {};
     syncCardPositions();
@@ -226,16 +261,15 @@
 
   function renderCardsToFactory(cards) {
     var factory = document.getElementById('hidden-card-factory');
-    document.getElementById('zone_unassigned').innerHTML = ''; // ローディング文字を消す
+    document.getElementById('zone_unassigned').innerHTML = ''; 
 
     cards.forEach(card => {
       var cardId = card.id;
-      // 既に画面にあれば作らない
       if(document.getElementById('card_' + cardId)) return;
 
       var cardHtml = `
         <div class="card-item" id="card_${cardId}" data-card-id="${cardId}">
-          <div class="card-header">${card.name}</div>
+          <div class="working-badge">作業中</div> <div class="card-header">${card.name}</div>
           <div class="card-body">
             <div class="add-row">
               <select class="member-sel" id="sel_${cardId}"><option value="">作業者を選択</option></select>
@@ -257,20 +291,16 @@
       setupCardActions(cardId, card.name);
     });
 
-    // 生成後、Firebaseの場所情報に合わせて配置
     syncCardPositions();
     renderAllTimers();
   }
 
-  // カードを正しいゾーンに移動する関数
   function syncCardPositions() {
     document.querySelectorAll('.card-item').forEach(cardEl => {
       let cardId = cardEl.dataset.cardId;
-      // 位置データがなければ未割当(zone_unassigned)に置く
       let targetZoneId = currentPositions[cardId] || 'zone_unassigned';
       let targetZone = document.getElementById(targetZoneId);
       
-      // 今いる場所と違う場合のみ移動させる
       if (targetZone && cardEl.parentElement !== targetZone) {
         targetZone.appendChild(cardEl);
       }
@@ -290,11 +320,16 @@
       if (currentFirebaseTimers[key]) return; 
 
       sel.value = '';
+      
+      // ★追加：もし未割当か保留中にいる時に追加した場合は、勝手に動かないように停止状態(paused)から始める
+      let currentZone = currentPositions[cardId] || 'zone_unassigned';
+      let initialState = (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') ? 'paused' : 'running';
+
       set(ref(db, 'timers/' + key), {
         cardId: cardId, cardName: cardName, member: member,
-        state: 'running', startTime: Date.now(), accumulated: 0
+        state: initialState, startTime: initialState === 'running' ? Date.now() : null, accumulated: 0
       });
-      addLogToFirebase(member, cardName, 0, true);
+      addLogToFirebase(member, cardName, 0, initialState === 'running');
     });
 
     document.getElementById('stopall_' + cardId).addEventListener('click', () => {
@@ -302,7 +337,6 @@
     });
   }
 
-  // 指定したカードの全タイマーを止める（Firebase経由）
   function stopAllTimersForCard(cardId) {
     for (let key in currentFirebaseTimers) {
       let data = currentFirebaseTimers[key];
@@ -336,9 +370,25 @@
        }
     });
 
-    // 全員停止ボタンの表示調整
+    // ★追加：各カードの中でタイマーが動いているかチェックして、バッジをピカピカさせる
     document.querySelectorAll('.card-item').forEach(cardEl => {
-        updateStopAllBtn(cardEl.dataset.cardId);
+        let cardId = cardEl.dataset.cardId;
+        let isWorking = false;
+        
+        for (let key in currentFirebaseTimers) {
+            if (currentFirebaseTimers[key].cardId === cardId && currentFirebaseTimers[key].state === 'running') {
+                isWorking = true;
+                break;
+            }
+        }
+
+        if (isWorking) {
+            cardEl.classList.add('is-working');
+        } else {
+            cardEl.classList.remove('is-working');
+        }
+        
+        updateStopAllBtn(cardId);
     });
   }
 
@@ -378,11 +428,18 @@
   function toggleFirebaseTimer(key) {
     let data = currentFirebaseTimers[key];
     if (!data) return;
+
+    let currentZone = currentPositions[data.cardId] || 'zone_unassigned';
+
     if (data.state === 'running') {
       let elapsed = data.accumulated + Math.floor((Date.now() - data.startTime) / 1000);
       update(ref(db, 'timers/' + key), { state: 'paused', accumulated: elapsed, startTime: null });
       addLogToFirebase(data.member, data.cardName, elapsed, false);
     } else {
+      // ★追加：未割当と保留エリアでは再開の裏側プログラムもブロックする
+      if (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') {
+         return; 
+      }
       update(ref(db, 'timers/' + key), { state: 'running', startTime: Date.now() });
       addLogToFirebase(data.member, data.cardName, data.accumulated, true);
     }
