@@ -39,9 +39,9 @@ window.TrelloPowerUp.initialize({
       // Trelloで使える色は: blue, green, orange, red, yellow, purple, pink, sky, lime, light-gray, black
       var displayRules = {
         '登録ナンバ': { color: 'yellow', icon: '🚗 ' },
-        '_N受取区分': { color: 'green', icon: '📥 ' },
-        'N引渡区分': { color: 'sky', icon: '📤 ' },
-        'N作業完了年月日': { color: 'red', icon: '🏁 ' }
+        'Ｎ引渡区分': { color: 'green', icon: '📥 ' },
+        'Ａ車型': { color: 'sky', icon: '📤 ' },
+        'Ｎ作業完了年月日': { color: 'red', icon: '🏁 ' }
         // 必要なものをどんどん下に追加できます！
       };
 
