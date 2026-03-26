@@ -13,7 +13,7 @@ TrelloPowerUp.initialize({
           url: './timer.html', // あなたが作ったHTMLを呼び出す
           accentColor: '#0079bf',
           height: 650, // 画面の高さ
-          fullscreen: false,
+          fullscreen: true,
           title: '一括タイマー管理' // ポップアップの上のタイトル
         });
       }
