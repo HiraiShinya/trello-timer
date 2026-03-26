@@ -47,23 +47,41 @@
   .bottom-panel .area-title {background:#abf5d1; color:#006644;}
   .unassigned-dropzone {flex:1; padding:12px; display:flex; flex-wrap:wrap; gap:8px; overflow-y:auto; align-content:flex-start;}
 
-  /* ★案件カードの左右分割デザイン */
+  /* 案件カードのデザイン */
   .card-item {
-    width: 380px; /* 右側に枠を作るため少し広げました */
-    background: #fff; border: 1px solid #c1c7d0; border-radius: 6px; 
+    width: 380px; background: #fff; border: 1px solid #c1c7d0; border-radius: 6px; 
     box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-direction: row; 
     cursor: grab; position: relative;
   }
   .card-item:active {cursor: grabbing;}
   
-  /* 左側（案件情報と操作） */
-  .card-left {flex: 1; display: flex; flex-direction: column; padding: 8px; border-right: 1px dashed #dfe1e6; min-width: 0;}
+  /* 左側（案件情報とタブレット向けワンタップ追加） */
+  .card-left {flex: 1; display: flex; flex-direction: column; padding: 8px; border-right: 1px dashed #dfe1e6; min-width: 0; overflow: hidden;}
   .card-header {font-size: 12px; font-weight: bold; color: #172b4d; word-break: break-word; margin-bottom: 6px;}
-  .card-body {display: flex; flex-direction: column; gap: 4px; margin-top: auto;}
-  .member-sel {font-size: 11px; padding: 2px; border: 1px solid #dfe1e6; border-radius: 3px; width: 100%;}
-  .btn-add, .btn-stopall {font-size: 11px; padding: 4px 0; color: #fff; border: none; border-radius: 3px; cursor: pointer; flex: 1;}
-  .btn-add {background: #0079bf;}
-  .btn-stopall {background: #172b4d;}
+  .card-body {display: flex; flex-direction: column; margin-top: auto;}
+  
+  /* ★タブレット対応：横スクロール可能なメンバ追加ボタンリスト */
+  .quick-member-list {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; 
+    -webkit-overflow-scrolling: touch; margin-top: auto; margin-bottom: 6px;
+  }
+  .quick-member-list::-webkit-scrollbar { height: 4px; }
+  .quick-member-list::-webkit-scrollbar-thumb { background: #c1c7d0; border-radius: 4px; }
+  
+  .quick-add-btn {
+    flex-shrink: 0; display: flex; align-items: center; padding: 4px 10px 4px 4px; 
+    background: #fff; border: 1px solid #dfe1e6; border-radius: 16px; 
+    font-size: 11px; font-weight: bold; color: #172b4d; cursor: pointer; 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.1s;
+  }
+  .quick-add-btn:active { background: #e4e6ea; transform: scale(0.96); }
+  .quick-add-btn.added { opacity: 0.4; cursor: not-allowed; box-shadow: none; background: #fafbfc; border-color: #ebecf0;}
+  .quick-add-btn .t-avatar { width: 18px; height: 18px; font-size: 8px; margin-right: 4px; }
+
+  .btn-stopall {
+    font-size: 11px; padding: 6px 0; background: #172b4d; color: #fff; 
+    border: none; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; display:none;
+  }
 
   /* 右側（メンバー4枠の2x2グリッド） */
   .card-right {width: 150px; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; flex-shrink: 0;}
@@ -143,6 +161,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
+  // 作業メンバーのリスト
   var MEMBERS = ['田中','佐藤','鈴木','山田', '伊藤', '渡辺']; 
   var memberPhotos = {};
   var colorIdx = 0;
@@ -189,7 +208,7 @@
   });
 
   // Firebase監視
-  onValue(ref(db, 'photos'), (snapshot) => { memberPhotos = snapshot.val() || {}; buildSettings(); });
+  onValue(ref(db, 'photos'), (snapshot) => { memberPhotos = snapshot.val() || {}; buildSettings(); refreshAllTimerAvatars(); });
   onValue(ref(db, 'timers'), (snapshot) => { currentFirebaseTimers = snapshot.val() || {}; renderAllTimers(); });
   onValue(ref(db, 'logs'), (snapshot) => { renderLogs(snapshot.val() || {}); });
   onValue(ref(db, 'positions'), (snapshot) => { currentPositions = snapshot.val() || {}; syncCardPositions(); });
@@ -219,11 +238,9 @@
           <div class="card-left">
             <div class="card-header">${card.name}</div>
             <div class="card-body">
-              <select class="member-sel" id="sel_${cardId}"><option value="">作業者を選択</option></select>
-              <div style="display:flex; gap:4px;">
-                <button class="btn-add" id="addbtn_${cardId}">追加</button>
-                <button class="btn-stopall" id="stopall_${cardId}" style="display:none;">全停止</button>
-              </div>
+              <div style="font-size:10px; color:#888; margin-bottom:2px;">タップでアサイン（横スクロール可）</div>
+              <div class="quick-member-list" id="quick_${cardId}"></div>
+              <button class="btn-stopall" id="stopall_${cardId}">全員のタイマーを停止</button>
             </div>
           </div>
 
@@ -237,13 +254,32 @@
       `;
       factory.insertAdjacentHTML('beforeend', cardHtml);
 
-      var sel = document.getElementById('sel_' + cardId);
+      // タブレット用ワンタップボタンの生成
+      var quickList = document.getElementById('quick_' + cardId);
       MEMBERS.forEach(name => {
-        var opt = document.createElement('option');
-        opt.value = name; opt.textContent = name; sel.appendChild(opt);
+        var btn = document.createElement('button');
+        btn.className = 'quick-add-btn';
+        btn.dataset.memberName = name; // ボタンの状態管理用
+        
+        // アバターを追加
+        var avatar = makeAvatarEl(name, 18);
+        avatar.dataset.member = name; 
+        btn.appendChild(avatar);
+        
+        // 名前を追加
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+        btn.appendChild(nameSpan);
+
+        btn.addEventListener('click', () => {
+           if(btn.classList.contains('added')) return; // 既に追加済みの場合は無効
+           addMemberToCard(cardId, card.name, name);
+        });
+        quickList.appendChild(btn);
       });
 
-      setupCardActions(cardId, card.name);
+      // 全停止ボタンの設定
+      document.getElementById('stopall_' + cardId).addEventListener('click', () => { stopAllTimersForCard(cardId); });
     });
 
     syncCardPositions();
@@ -257,9 +293,8 @@
     });
   }
 
-  function setupCardActions(cardId, cardName) {
-    document.getElementById('addbtn_' + cardId).addEventListener('click', () => {
-      // ★ 枠が4つ埋まっているかチェック
+  // ★分離したメンバー追加関数
+  function addMemberToCard(cardId, cardName, member) {
       let activeCount = 0;
       for (let k in currentFirebaseTimers) {
           if (currentFirebaseTimers[k].cardId === cardId) activeCount++;
@@ -269,21 +304,14 @@
           return;
       }
 
-      var sel = document.getElementById('sel_' + cardId);
-      var member = sel.value;
-      if(!member){sel.style.border='1px solid #eb5a46';setTimeout(()=>{sel.style.border='1px solid #dfe1e6'},1000);return;}
       var key = cardId + '_' + member;
       if (currentFirebaseTimers[key]) return; 
 
-      sel.value = '';
       let currentZone = currentPositions[cardId] || 'zone_unassigned';
       let initialState = (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') ? 'paused' : 'running';
 
       set(ref(db, 'timers/' + key), { cardId: cardId, cardName: cardName, member: member, state: initialState, startTime: initialState === 'running' ? Date.now() : null, accumulated: 0 });
       addLogToFirebase(member, cardName, 0, initialState === 'running');
-    });
-
-    document.getElementById('stopall_' + cardId).addEventListener('click', () => { stopAllTimersForCard(cardId); });
   }
 
   function stopAllTimersForCard(cardId) {
@@ -298,7 +326,6 @@
   }
 
   function renderAllTimers() {
-    // 各カードごとにタイマーをグループ化
     let timersByCard = {};
     document.querySelectorAll('.card-item').forEach(cardEl => { timersByCard[cardEl.dataset.cardId] = []; });
 
@@ -313,7 +340,7 @@
         let isWorking = false;
         let runningCount = 0;
 
-        // 右側の4枠（0〜3）にタイマーを流し込む
+        // 右側の4枠（0〜3）の処理
         for (let i = 0; i < 4; i++) {
             let slotEl = document.getElementById(`slot_${cardId}_${i}`);
             if (!slotEl) continue;
@@ -323,7 +350,6 @@
                 if(t.data.state === 'running') { isWorking = true; runningCount++; }
                 updateSlotVisuals(slotEl, t.key, t.data);
             } else {
-                // 空き枠は点線状態に戻す
                 if(slotEl.dataset.key && localTimers[slotEl.dataset.key]) {
                     clearInterval(localTimers[slotEl.dataset.key]);
                     delete localTimers[slotEl.dataset.key];
@@ -333,6 +359,16 @@
                 slotEl.innerHTML = '';
             }
         }
+
+        // ★タブレット用ワンタップボタンのグレーアウト処理
+        let activeMembers = timers.map(t => t.data.member);
+        cardEl.querySelectorAll('.quick-add-btn').forEach(btn => {
+            if (activeMembers.includes(btn.dataset.memberName)) {
+                btn.classList.add('added');
+            } else {
+                btn.classList.remove('added');
+            }
+        });
 
         // ピカピカバッジのオンオフ
         if (isWorking) cardEl.classList.add('is-working');
@@ -345,7 +381,6 @@
   }
 
   function updateSlotVisuals(slotEl, key, data) {
-    // 枠の中に中身がなければ生成する
     if (slotEl.dataset.key !== key) {
       slotEl.dataset.key = key;
       slotEl.innerHTML = `
@@ -354,7 +389,9 @@
         <div class="slot-time val-text"></div>
         <button class="btn-toggle"></button>
       `;
-      slotEl.querySelector('.slot-avatar-wrap').appendChild(makeAvatarEl(data.member, 18));
+      let av = makeAvatarEl(data.member, 18);
+      av.dataset.member = data.member; // 顔写真更新用
+      slotEl.querySelector('.slot-avatar-wrap').appendChild(av);
       slotEl.querySelector('.btn-toggle').addEventListener('click', () => { toggleFirebaseTimer(key); });
     }
 
@@ -432,6 +469,18 @@
       var info = document.createElement('div');
       var nm = document.createElement('div'); nm.className = 'member-setting-name'; nm.textContent = name;
       info.appendChild(nm); item.appendChild(uploadArea); item.appendChild(info); container.appendChild(item);
+    });
+  }
+
+  function refreshAllTimerAvatars(){
+    document.querySelectorAll('.t-avatar[data-member]').forEach(el => {
+      var member = el.dataset.member; el.innerHTML = '';
+      if(memberPhotos[member]){
+        var img = document.createElement('img'); img.src = memberPhotos[member]; el.appendChild(img);
+        el.style.background = ''; el.style.color = '';
+      } else {
+        var col = getColor(member); el.style.background = col.bg; el.style.color = col.fg; el.textContent = member.slice(0,2);
+      }
     });
   }
 
