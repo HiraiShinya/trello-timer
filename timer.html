@@ -9,7 +9,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   body {font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#f4f5f7; height:100vh; display:flex; flex-direction:column;}
   
-  /* トップのヘッダー（顔写真と設定） */
+  /* トップのヘッダー */
   .header-area {background:#0079bf; padding:12px 16px; flex-shrink:0;}
   .settings-title {font-size:12px; color:#fff; font-weight:500; margin-bottom:8px;}
   .member-settings {display:flex; flex-wrap:wrap; gap:8px;}
@@ -20,17 +20,17 @@
   .photo-placeholder {font-size:14px; color:#c1c7d0;}
   .member-setting-name {font-size:11px; color:#172b4d; font-weight:500;}
 
-  /* メインのレイアウト */
+  /* メインレイアウト */
   .main-board {display:flex; flex:1; overflow:hidden; padding:12px; gap:12px;}
   
-  /* 左側：15レーンエリア */
+  /* 左側：レーン */
   .lanes-panel {flex:2.5; display:flex; flex-direction:column; gap:8px; overflow-y:auto; padding-right:8px;}
   .lane-row {display:flex; background:#fff; border:1px solid #dfe1e6; border-radius:6px; overflow:hidden; min-height:100px;}
   .lane-label {width:80px; background:#172b4d; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; flex-shrink:0;}
   .dropzone {flex:1; padding:8px; display:flex; flex-wrap:wrap; gap:8px; background:#fafbfc; align-content:flex-start;}
   .dropzone.highlight {background:#e6fcff;} 
 
-  /* 右側：保留エリアとログ */
+  /* 右側：保留＆ログ */
   .right-panel {flex:1; display:flex; flex-direction:column; gap:12px; overflow-y:auto;}
   .hold-area {background:#fff0ec; border:2px dashed #eb5a46; border-radius:8px; display:flex; flex-direction:column; min-height:250px;}
   .area-title {background:rgba(0,0,0,0.05); padding:6px 12px; font-size:13px; font-weight:bold; color:#172b4d; border-bottom:1px solid rgba(0,0,0,0.05);}
@@ -42,64 +42,58 @@
   .log-list {padding:8px; overflow-y:auto; flex:1;}
   .log-item {font-size:11px; padding:4px 0; border-bottom:1px solid #ebecf0; display:flex; justify-content:space-between; align-items:center;}
 
-  /* 下部：未割当エリア */
+  /* 下部：未割当 */
   .bottom-panel {height:220px; background:#e3fcef; border-top:2px solid #36b37e; flex-shrink:0; display:flex; flex-direction:column;}
   .bottom-panel .area-title {background:#abf5d1; color:#006644;}
   .unassigned-dropzone {flex:1; padding:12px; display:flex; flex-wrap:wrap; gap:8px; overflow-y:auto; align-content:flex-start;}
 
-  /* ★案件カードのデザイン */
-  .card-item {width:260px; background:#fff; border:1px solid #c1c7d0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1); display:flex; flex-direction:column; cursor:grab; position:relative;}
-  .card-item:active {cursor:grabbing;}
-  .card-header {padding:8px; border-bottom:1px solid #ebecf0; font-size:12px; font-weight:bold; color:#172b4d; word-break:break-word;}
-  .card-body {padding:8px;}
+  /* ★案件カードの左右分割デザイン */
+  .card-item {
+    width: 380px; /* 右側に枠を作るため少し広げました */
+    background: #fff; border: 1px solid #c1c7d0; border-radius: 6px; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-direction: row; 
+    cursor: grab; position: relative;
+  }
+  .card-item:active {cursor: grabbing;}
   
-  /* ★ピカピカ光る作業中バッジ */
-  .working-badge {
-    position: absolute;
-    top: -10px;
-    left: -10px;
-    background: #ff7b00; /* オレンジ色 */
-    color: #fff;
-    font-size: 11px;
-    font-weight: bold;
-    padding: 3px 8px;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    display: none; /* デフォルトは非表示 */
-    z-index: 10;
-    animation: blinker 1s linear infinite;
-  }
-  @keyframes blinker {
-    50% { opacity: 0.3; }
-  }
-  /* カードが作業中の時だけバッジを表示 */
-  .card-item.is-working .working-badge {
-    display: block;
-  }
+  /* 左側（案件情報と操作） */
+  .card-left {flex: 1; display: flex; flex-direction: column; padding: 8px; border-right: 1px dashed #dfe1e6; min-width: 0;}
+  .card-header {font-size: 12px; font-weight: bold; color: #172b4d; word-break: break-word; margin-bottom: 6px;}
+  .card-body {display: flex; flex-direction: column; gap: 4px; margin-top: auto;}
+  .member-sel {font-size: 11px; padding: 2px; border: 1px solid #dfe1e6; border-radius: 3px; width: 100%;}
+  .btn-add, .btn-stopall {font-size: 11px; padding: 4px 0; color: #fff; border: none; border-radius: 3px; cursor: pointer; flex: 1;}
+  .btn-add {background: #0079bf;}
+  .btn-stopall {background: #172b4d;}
 
-  .add-row {display:flex; gap:4px; margin-bottom:8px;}
-  .member-sel {flex:1; font-size:11px; padding:2px; border:1px solid #dfe1e6; border-radius:3px;}
-  .btn-add {font-size:11px; padding:0 8px; background:#0079bf; color:#fff; border:none; border-radius:3px; cursor:pointer; height:24px;}
-  .btn-stopall {font-size:11px; padding:0 8px; background:#172b4d; color:#fff; border:none; border-radius:3px; cursor:pointer; height:24px; display:none;}
+  /* 右側（メンバー4枠の2x2グリッド） */
+  .card-right {width: 150px; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; flex-shrink: 0;}
   
-  .timer-row {display:flex; align-items:center; gap:4px; padding:4px; border-radius:4px; margin-bottom:2px; background:#f4f5f7; font-size:11px;}
-  .timer-row.running {background:#e6fcff; border:1px solid #b3f5ff;}
-  .timer-row.paused {background:#fff0ec; border:1px solid #ffd5d0; opacity:0.8;}
-  .val-text {font-family:monospace; margin-left:auto; font-weight:bold;}
-  .val-text.running {color:#0052cc;}
-  .btn-toggle {font-size:10px; padding:2px 6px; border:none; border-radius:3px; cursor:pointer;}
-  .btn-running {background:#eb5a46; color:#fff;}
-  .btn-paused {background:#0079bf; color:#fff;}
+  .member-slot {border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; height: 65px;}
+  .empty-slot {border: 2px dashed #c1c7d0; background: transparent;}
+  .filled {border: 1px solid #dfe1e6; padding: 4px;}
+  .filled.running {background: #e6fcff; border-color: #b3f5ff;}
+  .filled.paused {background: #fff0ec; border-color: #ffd5d0;}
+  
+  .slot-name {font-size: 10px; font-weight: bold; color: #172b4d; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;}
+  .slot-time {font-family: monospace; font-size: 9px; font-weight: bold; margin-bottom: 2px;}
+  .slot-time.running {color: #0052cc;}
+  .slot-time.paused {color: #888;}
+  
+  .btn-toggle {font-size: 9px; padding: 2px 6px; border: none; border-radius: 3px; cursor: pointer; width: 100%;}
+  .btn-running {background: #eb5a46; color: #fff;}
+  .btn-paused {background: #0079bf; color: #fff;}
 
-  /* ★未割当と保留エリアでは再開ボタンを非表示にする */
-  #zone_unassigned .btn-paused,
-  #zone_hold .btn-paused {
-    display: none !important;
-  }
+  /* ピカピカ光る作業中バッジ */
+  .working-badge {position: absolute; top: -10px; left: -10px; background: #ff7b00; color: #fff; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: none; z-index: 10; animation: blinker 1s linear infinite;}
+  @keyframes blinker { 50% { opacity: 0.3; } }
+  .card-item.is-working .working-badge {display: block;}
+
+  /* 未割当と保留エリアでは再開ボタンを非表示 */
+  #zone_unassigned .btn-paused, #zone_hold .btn-paused {display: none !important;}
 
   /* アバター */
-  .t-avatar {width:20px; height:20px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:bold; color:#fff;}
-  .t-avatar img {width:100%; height:100%; object-fit:cover;}
+  .t-avatar {width: 20px; height: 20px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: #fff; flex-shrink: 0;}
+  .t-avatar img {width: 100%; height: 100%; object-fit: cover;}
   </style>
 </head>
 <body>
@@ -111,13 +105,11 @@
 
 <div class="main-board">
   <div class="lanes-panel" id="lanesContainer"></div>
-
   <div class="right-panel">
     <div class="hold-area">
       <div class="area-title">⏸️ 作業保留中（ここに置くとタイマー自動停止＆再開不可）</div>
       <div class="hold-dropzone" id="zone_hold"></div>
     </div>
-    
     <div class="log-box">
       <div class="area-title">📝 計測ログ</div>
       <div class="log-list" id="logList"></div>
@@ -133,7 +125,6 @@
 </div>
 
 <div id="hidden-card-factory" style="display:none;"></div>
-
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
@@ -164,9 +155,7 @@
 
   var t = window.TrelloPowerUp.iframe();
 
-  // ==========================================
-  // 0. 15レーンのUI生成 & ドラッグ＆ドロップ設定
-  // ==========================================
+  // レーン生成
   const lanesContainer = document.getElementById('lanesContainer');
   const allZones = ['zone_unassigned', 'zone_hold'];
 
@@ -181,14 +170,9 @@
     `);
   }
 
-  // Sortable.jsの初期化
   allZones.forEach(zoneId => {
     let sortableGroup = { name: 'shared' };
-    
-    // ★追加ルール：未割当エリアには戻せない（put: false）
-    if (zoneId === 'zone_unassigned') {
-      sortableGroup.put = false;
-    }
+    if (zoneId === 'zone_unassigned') sortableGroup.put = false;
 
     new Sortable(document.getElementById(zoneId), {
       group: sortableGroup,
@@ -198,64 +182,25 @@
         const itemEl = evt.item; 
         const toZone = evt.to.id;
         const cardId = itemEl.dataset.cardId;
-        
         set(ref(db, 'positions/' + cardId), toZone);
-
-        // 保留エリアに入ったらタイマー全停止
-        if (toZone === 'zone_hold') {
-           stopAllTimersForCard(cardId);
-        }
+        if (toZone === 'zone_hold') stopAllTimersForCard(cardId);
       }
     });
   });
 
+  // Firebase監視
+  onValue(ref(db, 'photos'), (snapshot) => { memberPhotos = snapshot.val() || {}; buildSettings(); });
+  onValue(ref(db, 'timers'), (snapshot) => { currentFirebaseTimers = snapshot.val() || {}; renderAllTimers(); });
+  onValue(ref(db, 'logs'), (snapshot) => { renderLogs(snapshot.val() || {}); });
+  onValue(ref(db, 'positions'), (snapshot) => { currentPositions = snapshot.val() || {}; syncCardPositions(); });
 
-  // ==========================================
-  // 1. Firebase リアルタイム監視
-  // ==========================================
-  onValue(ref(db, 'photos'), (snapshot) => {
-    memberPhotos = snapshot.val() || {};
-    buildSettings();
-    refreshAllTimerAvatars();
-  });
-
-  onValue(ref(db, 'timers'), (snapshot) => {
-    currentFirebaseTimers = snapshot.val() || {};
-    renderAllTimers();
-  });
-
-  onValue(ref(db, 'logs'), (snapshot) => {
-    renderLogs(snapshot.val() || {});
-  });
-
-  onValue(ref(db, 'positions'), (snapshot) => {
-    currentPositions = snapshot.val() || {};
-    syncCardPositions();
-  });
-
-
-  // ==========================================
-  // 2. Trelloからタスク取得とカード生成
-  // ==========================================
-  t.render(function(){
-    fetchTrelloCards();
-  });
+  t.render(function(){ fetchTrelloCards(); });
 
   function fetchTrelloCards() {
-    Promise.all([
-      t.lists('id', 'name'),
-      t.cards('id', 'name', 'idList', 'labels')
-    ]).then(function(values) {
-      var lists = values[0];
-      var cards = values[1];
-      var targetList = lists.find(list => list.name === '作業中');
-      
-      if (!targetList) {
-        document.getElementById('zone_unassigned').innerHTML = '「作業中」リストがTrelloにありません。';
-        return;
-      }
-      var targetCards = cards.filter(card => card.idList === targetList.id);
-      renderCardsToFactory(targetCards);
+    Promise.all([ t.lists('id', 'name'), t.cards('id', 'name', 'idList', 'labels') ]).then(function(values) {
+      var targetList = values[0].find(list => list.name === '作業中');
+      if (!targetList) return;
+      renderCardsToFactory(values[1].filter(card => card.idList === targetList.id));
     });
   }
 
@@ -269,14 +214,24 @@
 
       var cardHtml = `
         <div class="card-item" id="card_${cardId}" data-card-id="${cardId}">
-          <div class="working-badge">作業中</div> <div class="card-header">${card.name}</div>
-          <div class="card-body">
-            <div class="add-row">
+          <div class="working-badge">作業中</div>
+          
+          <div class="card-left">
+            <div class="card-header">${card.name}</div>
+            <div class="card-body">
               <select class="member-sel" id="sel_${cardId}"><option value="">作業者を選択</option></select>
-              <button class="btn-add" id="addbtn_${cardId}">追加</button>
-              <button class="btn-stopall" id="stopall_${cardId}">全停止</button>
+              <div style="display:flex; gap:4px;">
+                <button class="btn-add" id="addbtn_${cardId}">追加</button>
+                <button class="btn-stopall" id="stopall_${cardId}" style="display:none;">全停止</button>
+              </div>
             </div>
-            <div id="rows_${cardId}"></div>
+          </div>
+
+          <div class="card-right" id="slots_${cardId}">
+            <div class="member-slot empty-slot" id="slot_${cardId}_0"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_1"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_2"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_3"></div>
           </div>
         </div>
       `;
@@ -297,22 +252,23 @@
 
   function syncCardPositions() {
     document.querySelectorAll('.card-item').forEach(cardEl => {
-      let cardId = cardEl.dataset.cardId;
-      let targetZoneId = currentPositions[cardId] || 'zone_unassigned';
-      let targetZone = document.getElementById(targetZoneId);
-      
-      if (targetZone && cardEl.parentElement !== targetZone) {
-        targetZone.appendChild(cardEl);
-      }
+      let targetZone = document.getElementById(currentPositions[cardEl.dataset.cardId] || 'zone_unassigned');
+      if (targetZone && cardEl.parentElement !== targetZone) targetZone.appendChild(cardEl);
     });
   }
 
-
-  // ==========================================
-  // 3. タイマーの描画とアクション
-  // ==========================================
   function setupCardActions(cardId, cardName) {
     document.getElementById('addbtn_' + cardId).addEventListener('click', () => {
+      // ★ 枠が4つ埋まっているかチェック
+      let activeCount = 0;
+      for (let k in currentFirebaseTimers) {
+          if (currentFirebaseTimers[k].cardId === cardId) activeCount++;
+      }
+      if (activeCount >= 4) {
+          alert('1つのタスクに割り当てられるメンバーは最大4名枠までです。');
+          return;
+      }
+
       var sel = document.getElementById('sel_' + cardId);
       var member = sel.value;
       if(!member){sel.style.border='1px solid #eb5a46';setTimeout(()=>{sel.style.border='1px solid #dfe1e6'},1000);return;}
@@ -320,21 +276,14 @@
       if (currentFirebaseTimers[key]) return; 
 
       sel.value = '';
-      
-      // ★追加：もし未割当か保留中にいる時に追加した場合は、勝手に動かないように停止状態(paused)から始める
       let currentZone = currentPositions[cardId] || 'zone_unassigned';
       let initialState = (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') ? 'paused' : 'running';
 
-      set(ref(db, 'timers/' + key), {
-        cardId: cardId, cardName: cardName, member: member,
-        state: initialState, startTime: initialState === 'running' ? Date.now() : null, accumulated: 0
-      });
+      set(ref(db, 'timers/' + key), { cardId: cardId, cardName: cardName, member: member, state: initialState, startTime: initialState === 'running' ? Date.now() : null, accumulated: 0 });
       addLogToFirebase(member, cardName, 0, initialState === 'running');
     });
 
-    document.getElementById('stopall_' + cardId).addEventListener('click', () => {
-       stopAllTimersForCard(cardId);
-    });
+    document.getElementById('stopall_' + cardId).addEventListener('click', () => { stopAllTimersForCard(cardId); });
   }
 
   function stopAllTimersForCard(cardId) {
@@ -349,78 +298,85 @@
   }
 
   function renderAllTimers() {
-    for (let key in currentFirebaseTimers) {
-      let data = currentFirebaseTimers[key];
-      let rowsContainer = document.getElementById('rows_' + data.cardId);
-      if (!rowsContainer) continue; 
+    // 各カードごとにタイマーをグループ化
+    let timersByCard = {};
+    document.querySelectorAll('.card-item').forEach(cardEl => { timersByCard[cardEl.dataset.cardId] = []; });
 
-      let rowEl = document.getElementById('row_' + key);
-      if (!rowEl) {
-        rowEl = createRowEl(key, data);
-        rowsContainer.appendChild(rowEl);
-      }
-      updateRowVisuals(rowEl, key, data);
+    for (let key in currentFirebaseTimers) {
+        let data = currentFirebaseTimers[key];
+        if(timersByCard[data.cardId]) timersByCard[data.cardId].push({key: key, data: data});
     }
 
-    document.querySelectorAll('.timer-row').forEach(row => {
-       let key = row.id.replace('row_', '');
-       if (!currentFirebaseTimers[key]) {
-          if (localTimers[key]) { clearInterval(localTimers[key]); delete localTimers[key]; }
-          row.remove();
-       }
-    });
-
-    // ★追加：各カードの中でタイマーが動いているかチェックして、バッジをピカピカさせる
     document.querySelectorAll('.card-item').forEach(cardEl => {
         let cardId = cardEl.dataset.cardId;
+        let timers = timersByCard[cardId] || [];
         let isWorking = false;
-        
-        for (let key in currentFirebaseTimers) {
-            if (currentFirebaseTimers[key].cardId === cardId && currentFirebaseTimers[key].state === 'running') {
-                isWorking = true;
-                break;
+        let runningCount = 0;
+
+        // 右側の4枠（0〜3）にタイマーを流し込む
+        for (let i = 0; i < 4; i++) {
+            let slotEl = document.getElementById(`slot_${cardId}_${i}`);
+            if (!slotEl) continue;
+
+            if (i < timers.length) {
+                let t = timers[i];
+                if(t.data.state === 'running') { isWorking = true; runningCount++; }
+                updateSlotVisuals(slotEl, t.key, t.data);
+            } else {
+                // 空き枠は点線状態に戻す
+                if(slotEl.dataset.key && localTimers[slotEl.dataset.key]) {
+                    clearInterval(localTimers[slotEl.dataset.key]);
+                    delete localTimers[slotEl.dataset.key];
+                }
+                slotEl.dataset.key = '';
+                slotEl.className = 'member-slot empty-slot';
+                slotEl.innerHTML = '';
             }
         }
 
-        if (isWorking) {
-            cardEl.classList.add('is-working');
-        } else {
-            cardEl.classList.remove('is-working');
-        }
+        // ピカピカバッジのオンオフ
+        if (isWorking) cardEl.classList.add('is-working');
+        else cardEl.classList.remove('is-working');
         
-        updateStopAllBtn(cardId);
+        // 全停止ボタンの表示制御
+        let btnStop = document.getElementById('stopall_' + cardId);
+        if(btnStop) btnStop.style.display = runningCount >= 2 ? 'block' : 'none';
     });
   }
 
-  function createRowEl(key, data) {
-    var rowEl = document.createElement('div');
-    rowEl.className = 'timer-row'; rowEl.id = 'row_' + key; rowEl.dataset.member = data.member;
-    var av = makeAvatarEl(data.member, 20); av.dataset.member = data.member;
-    var ns = document.createElement('span'); ns.style.flex = "1"; ns.textContent=data.member;
-    var vs = document.createElement('span'); vs.className='val-text';
-    var tb = document.createElement('button'); tb.className='btn-toggle';
+  function updateSlotVisuals(slotEl, key, data) {
+    // 枠の中に中身がなければ生成する
+    if (slotEl.dataset.key !== key) {
+      slotEl.dataset.key = key;
+      slotEl.innerHTML = `
+        <div class="slot-avatar-wrap" style="margin-bottom:2px;"></div>
+        <div class="slot-name">${data.member}</div>
+        <div class="slot-time val-text"></div>
+        <button class="btn-toggle"></button>
+      `;
+      slotEl.querySelector('.slot-avatar-wrap').appendChild(makeAvatarEl(data.member, 18));
+      slotEl.querySelector('.btn-toggle').addEventListener('click', () => { toggleFirebaseTimer(key); });
+    }
 
-    rowEl.appendChild(av); rowEl.appendChild(ns); rowEl.appendChild(vs); rowEl.appendChild(tb);
-    tb.addEventListener('click', () => { toggleFirebaseTimer(key); });
-    return rowEl;
-  }
-
-  function updateRowVisuals(rowEl, key, data) {
-    let vs = rowEl.querySelector('.val-text');
-    let tb = rowEl.querySelector('.btn-toggle');
+    let vs = slotEl.querySelector('.val-text');
+    let tb = slotEl.querySelector('.btn-toggle');
 
     if (data.state === 'running') {
-      rowEl.className = 'timer-row running';
-      vs.className = 'val-text running';
+      slotEl.className = 'member-slot filled running';
+      vs.className = 'slot-time val-text running';
       tb.className = 'btn-toggle btn-running'; tb.textContent = '停止';
+      
       if (!localTimers[key]) {
-        localTimers[key] = setInterval(() => { vs.textContent = fmt(data.accumulated + Math.floor((Date.now() - data.startTime) / 1000)); }, 1000);
+        localTimers[key] = setInterval(() => {
+          if(vs) vs.textContent = fmt(data.accumulated + Math.floor((Date.now() - data.startTime) / 1000));
+        }, 1000);
       }
       vs.textContent = fmt(data.accumulated + Math.floor((Date.now() - data.startTime) / 1000));
     } else {
-      rowEl.className = 'timer-row paused';
-      vs.className = 'val-text paused'; vs.textContent = fmt(data.accumulated);
+      slotEl.className = 'member-slot filled paused';
+      vs.className = 'slot-time val-text paused';
       tb.className = 'btn-toggle btn-paused'; tb.textContent = '再開';
+      vs.textContent = fmt(data.accumulated);
       if (localTimers[key]) { clearInterval(localTimers[key]); delete localTimers[key]; }
     }
   }
@@ -436,21 +392,15 @@
       update(ref(db, 'timers/' + key), { state: 'paused', accumulated: elapsed, startTime: null });
       addLogToFirebase(data.member, data.cardName, elapsed, false);
     } else {
-      // ★追加：未割当と保留エリアでは再開の裏側プログラムもブロックする
-      if (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') {
-         return; 
-      }
+      if (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') return; 
       update(ref(db, 'timers/' + key), { state: 'running', startTime: Date.now() });
       addLogToFirebase(data.member, data.cardName, data.accumulated, true);
     }
   }
 
-  // ==========================================
-  // 4. ユーティリティ
-  // ==========================================
+  // ユーティリティ関数
   function getColor(n){if(!memberColors[n]){memberColors[n]=palettes[colorIdx%palettes.length];colorIdx++;}return memberColors[n];}
   function fmt(s){return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor((s%3600)/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
-
   function makeAvatarEl(member, size){
     var wrap = document.createElement('div'); wrap.className = 't-avatar'; wrap.style.width = size+'px'; wrap.style.height = size+'px';
     if(memberPhotos[member]){
@@ -483,27 +433,6 @@
       var nm = document.createElement('div'); nm.className = 'member-setting-name'; nm.textContent = name;
       info.appendChild(nm); item.appendChild(uploadArea); item.appendChild(info); container.appendChild(item);
     });
-  }
-
-  function refreshAllTimerAvatars(){
-    document.querySelectorAll('.t-avatar[data-member]').forEach(el => {
-      var member = el.dataset.member; el.innerHTML = '';
-      if(memberPhotos[member]){
-        var img = document.createElement('img'); img.src = memberPhotos[member]; el.appendChild(img);
-        el.style.background = ''; el.style.color = '';
-      } else {
-        var col = getColor(member); el.style.background = col.bg; el.style.color = col.fg; el.textContent = member.slice(0,2);
-      }
-    });
-  }
-
-  function updateStopAllBtn(cardId){
-    var btn = document.getElementById('stopall_' + cardId); if(!btn) return;
-    let runningCount = 0;
-    for (let key in currentFirebaseTimers) {
-      if (currentFirebaseTimers[key].cardId === cardId && currentFirebaseTimers[key].state === 'running') runningCount++;
-    }
-    btn.style.display = runningCount >= 2 ? 'inline-block' : 'none';
   }
 
   function addLogToFirebase(member, cardName, seconds, isResume) {
