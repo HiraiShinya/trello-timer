@@ -33,17 +33,20 @@
   /* 左側：レーン */
   .lanes-panel {flex:2.5; display:flex; flex-direction:column; gap:8px; overflow-y:auto; padding-right:8px;}
   .lane-row {display:flex; background:#fff; border:1px solid #dfe1e6; border-radius:6px; overflow:hidden; min-height:160px; transition:all 0.3s;}
-  .lane-row.collapsed {min-height: 48px !important;}
+  
+  /* ★修正：閉じた時の高さを48pxから70pxに変更し、はみ出しを防止 */
+  .lane-row.collapsed {min-height: 70px !important;}
   .lane-row.collapsed .dropzone {display: none;}
   
-  .lane-label {width:80px; background:#172b4d; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:14px; font-weight:bold; flex-shrink:0; cursor:pointer; user-select:none; gap:6px; transition:all 0.3s;}
+  /* ★修正：中身の隙間（gap）を少し詰め、上下の余白（padding）を追加してバランスを最適化 */
+  .lane-label {width:80px; background:#172b4d; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:14px; font-weight:bold; flex-shrink:0; cursor:pointer; user-select:none; gap:4px; padding:8px 0; transition:all 0.3s;}
   .lane-label:hover {background:#091e42;}
   .toggle-icon {font-size:11px; opacity:0.8;}
 
-  /* ★レーンを閉じた時の件数表示バッジ */
+  /* レーンを閉じた時の件数表示バッジ */
   .card-count-badge {
     display: none;
-    background: #eb5a46; /* 赤で目立たせる */
+    background: #eb5a46;
     color: #fff;
     font-size: 11px;
     font-weight: bold;
@@ -51,8 +54,8 @@
     border-radius: 12px;
     text-align: center;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    margin-top: 2px;
   }
-  /* レーンが閉じていて、かつ「has-cards」クラスがある時だけ表示 */
   .lane-row.collapsed .card-count-badge.has-cards {
     display: inline-block;
   }
@@ -196,9 +199,6 @@
 
   var t = window.TrelloPowerUp.iframe();
 
-  // ==========================================
-  // ★ レーン生成（件数バッジを追加）
-  // ==========================================
   const lanesContainer = document.getElementById('lanesContainer');
   const allZones = ['zone_unassigned', 'zone_hold'];
 
@@ -328,16 +328,12 @@
     renderAllTimers();
   }
 
-  // ==========================================
-  // ★ カード位置同期と同時に各レーンの件数を計算
-  // ==========================================
   function syncCardPositions() {
     document.querySelectorAll('.card-item').forEach(cardEl => {
       let targetZone = document.getElementById(currentPositions[cardEl.dataset.cardId] || 'zone_unassigned');
       if (targetZone && cardEl.parentElement !== targetZone) targetZone.appendChild(cardEl);
     });
     
-    // 全レーンのカード件数バッジを更新
     updateLaneCounts();
   }
 
