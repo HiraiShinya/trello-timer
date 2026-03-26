@@ -64,390 +64,419 @@
 <body>
 
 <div class="board">
-
   <div class="settings-box">
-    <div class="settings-title">作業者 顔写真設定</div>
+    <div class="settings-title">作業者 顔写真設定（全員にリアルタイム同期されます）</div>
     <div class="member-settings" id="memberSettings"></div>
   </div>
 
   <div class="list">
     <div class="list-title">作業中</div>
-    
     <div id="dynamic-cards-container">
-       <div style="padding:10px; font-size:12px; color:#5e6c84;">カードを読み込み中...</div>
+       <div style="padding:10px; font-size:12px; color:#5e6c84;">Trelloからカードを読み込み中...</div>
     </div>
-
   </div>
 
   <div class="log-box">
-    <div class="log-title">計測ログ</div>
+    <div class="log-title">計測ログ（リアルタイム同期）</div>
     <div id="logList"><div class="empty-log">まだ記録がありません</div></div>
   </div>
 </div>
 
-<script>
-var MEMBERS = ['田中','佐藤','鈴木','山田'];
-var memberPhotos = {};
-var timers = {};
-var colorIdx = 0;
-var memberColors = {};
-var palettes = [{bg:'#B5D4F4',fg:'#0C447C'},{bg:'#9FE1CB',fg:'#085041'},{bg:'#F5C4B3',fg:'#712B13'},{bg:'#FAC775',fg:'#633806'},{bg:'#C0DD97',fg:'#27500A'}];
+<script type="module">
+  // Firebaseの各種機能を読み込み
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set, update, push } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
-function getColor(n){if(!memberColors[n]){memberColors[n]=palettes[colorIdx%palettes.length];colorIdx++;}return memberColors[n];}
-function fmt(s){return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor((s%3600)/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+  // あなたの「魔法の鍵」
+  const firebaseConfig = {
+    apiKey: "AIzaSyCZSImS2hTSASLj9NfCpCMOWsT54d9hh7k",
+    authDomain: "trello-timerbb.firebaseapp.com",
+    databaseURL: "https://trello-timerbb-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "trello-timerbb",
+    storageBucket: "trello-timerbb.firebasestorage.app",
+    messagingSenderId: "1082057229145",
+    appId: "1:1082057229145:web:93166029c94b58617fc248"
+  };
 
-function makeAvatarEl(member, size){
-  var wrap = document.createElement('div');
-  wrap.className = 't-avatar';
-  wrap.style.width = size+'px';
-  wrap.style.height = size+'px';
-  if(memberPhotos[member]){
-    var img = document.createElement('img');
-    img.src = memberPhotos[member];
-    wrap.appendChild(img);
-  } else {
-    var col = getColor(member);
-    wrap.style.background = col.bg;
-    wrap.style.color = col.fg;
-    wrap.textContent = member.slice(0,2);
+  // Firebaseを起動
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // === グローバル変数の準備 ===
+  var MEMBERS = ['田中','佐藤','鈴木','山田'];
+  var memberPhotos = {};
+  var colorIdx = 0;
+  var memberColors = {};
+  var palettes = [{bg:'#B5D4F4',fg:'#0C447C'},{bg:'#9FE1CB',fg:'#085041'},{bg:'#F5C4B3',fg:'#712B13'},{bg:'#FAC775',fg:'#633806'},{bg:'#C0DD97',fg:'#27500A'}];
+  
+  // 状態管理用キャッシュ
+  let currentFirebaseTimers = {};
+  let localTimers = {}; // 時計の秒針を動かすための入れ物
+
+  // Trelloの準備
+  var t = window.TrelloPowerUp.iframe();
+
+
+  // ==========================================
+  // 1. Firebase リアルタイム監視（データが降ってくる）
+  // ==========================================
+
+  // 📷 顔写真の同期
+  onValue(ref(db, 'photos'), (snapshot) => {
+    memberPhotos = snapshot.val() || {};
+    buildSettings();
+    refreshAllTimerAvatars();
+    // 画面にカードが描画されていれば顔アイコンも更新
+    document.querySelectorAll('.card').forEach(cardEl => {
+        let facesEl = cardEl.querySelector('.active-faces');
+        if(facesEl) refreshFaceChips(facesEl.id.replace('faces_', ''));
+    });
+  });
+
+  // ⏱️ タイマー状態の同期
+  onValue(ref(db, 'timers'), (snapshot) => {
+    currentFirebaseTimers = snapshot.val() || {};
+    renderAllTimers();
+  });
+
+  // 📝 ログの同期
+  onValue(ref(db, 'logs'), (snapshot) => {
+    renderLogs(snapshot.val() || {});
+  });
+
+
+  // ==========================================
+  // 2. Trelloからタスク（カード）を取得
+  // ==========================================
+  t.render(function(){
+    fetchTrelloCards();
+  });
+
+  function fetchTrelloCards() {
+    Promise.all([
+      t.lists('id', 'name'),
+      t.cards('id', 'name', 'idList', 'labels')
+    ]).then(function(values) {
+      var lists = values[0];
+      var cards = values[1];
+      var targetList = lists.find(list => list.name === '作業中');
+      var container = document.getElementById('dynamic-cards-container');
+
+      if (!targetList) {
+        container.innerHTML = '<div style="padding:10px; font-size:12px; color:#eb5a46; background:#fff; border-radius:4px;">「作業中」リストが見つかりません。</div>';
+        return;
+      }
+
+      var targetCards = cards.filter(card => card.idList === targetList.id);
+      renderCards(targetCards);
+    });
   }
-  return wrap;
-}
 
-function buildSettings(){
-  var container = document.getElementById('memberSettings');
-  container.innerHTML = '';
-  MEMBERS.forEach(function(name){
-    var item = document.createElement('div');
-    item.className = 'member-setting-item';
-
-    var uploadArea = document.createElement('div');
-    uploadArea.className = 'photo-upload-area';
-    uploadArea.id = 'upload_'+name;
-
-    if(memberPhotos[name]){
-      var img = document.createElement('img');
-      img.src = memberPhotos[name];
-      uploadArea.appendChild(img);
-    } else {
-      var ph = document.createElement('span');
-      ph.className = 'photo-placeholder';
-      ph.textContent = '+';
-      uploadArea.appendChild(ph);
-    }
-
-    var fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.addEventListener('change', function(e){
-      var file = e.target.files[0];
-      if(!file) return;
-      var reader = new FileReader();
-      reader.onload = function(ev){
-        memberPhotos[name] = ev.target.result;
-        buildSettings();
-        refreshAllSelects();
-        refreshAllFaceChips();
-        refreshAllTimerAvatars();
-      };
-      reader.readAsDataURL(file);
-    });
-    uploadArea.appendChild(fileInput);
-
-    var info = document.createElement('div');
-    var nm = document.createElement('div');
-    nm.className = 'member-setting-name';
-    nm.textContent = name;
-    var hint = document.createElement('div');
-    hint.className = 'member-setting-hint';
-    hint.textContent = memberPhotos[name] ? '登録済み' : '写真を追加';
-    info.appendChild(nm);
-    info.appendChild(hint);
-
-    item.appendChild(uploadArea);
-    item.appendChild(info);
-    container.appendChild(item);
-  });
-}
-
-// 動的生成されたプルダウンも更新できるように修正
-function refreshAllSelects(){
-  document.querySelectorAll('.member-sel').forEach(function(sel){
-    var current = sel.value;
-    sel.innerHTML = '<option value="">作業者を選択</option>';
-    MEMBERS.forEach(function(name){
-      var opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      sel.appendChild(opt);
-    });
-    sel.value = current;
-  });
-}
-
-// 動的生成されたカードの顔アイコンを更新できるように修正
-function refreshAllFaceChips(){
-  document.querySelectorAll('.card').forEach(function(cardEl){
-    var rowsEl = cardEl.querySelector('[id^="rows_"]');
-    var facesEl = cardEl.querySelector('.active-faces');
-    if(rowsEl && facesEl) {
-      rebuildFaceChips(rowsEl.id, facesEl.id);
-    }
-  });
-}
-
-function refreshAllTimerAvatars(){
-  document.querySelectorAll('.t-avatar[data-member]').forEach(function(el){
-    var member = el.dataset.member;
-    el.innerHTML = '';
-    if(memberPhotos[member]){
-      var img = document.createElement('img');
-      img.src = memberPhotos[member];
-      el.appendChild(img);
-      el.style.background = '';
-      el.style.color = '';
-    } else {
-      var col = getColor(member);
-      el.style.background = col.bg;
-      el.style.color = col.fg;
-      el.textContent = member.slice(0,2);
-    }
-  });
-}
-
-function rebuildFaceChips(rowsId, facesId){
-  var facesEl = document.getElementById(facesId);
-  facesEl.innerHTML = '';
-  var rows = document.getElementById(rowsId);
-  Array.from(rows.children).forEach(function(rowEl){
-    var member = rowEl.dataset.member;
-    if(!member) return;
-    var chip = document.createElement('div');
-    chip.className = 'face-chip';
-    chip.title = member + (rowEl.dataset.state==='running' ? ' (計測中)' : ' (停止中)');
-    chip.style.opacity = rowEl.dataset.state==='running' ? '1' : '0.4';
-    if(memberPhotos[member]){
-      var img = document.createElement('img');
-      img.src = memberPhotos[member];
-      chip.appendChild(img);
-    } else {
-      var col = getColor(member);
-      chip.style.background = col.bg;
-      chip.style.color = col.fg;
-      chip.style.fontSize = '10px';
-      chip.textContent = member.slice(0,2);
-    }
-    facesEl.appendChild(chip);
-  });
-}
-
-function updateStopAllBtn(rowsId, stopAllId){
-  var rows = document.getElementById(rowsId);
-  var running = Array.from(rows.children).filter(function(r){return r.dataset.state==='running';});
-  document.getElementById(stopAllId).style.display = running.length>=2?'inline-block':'none';
-}
-
-function addLog(member, cardName, seconds, isResume){
-  var list = document.getElementById('logList');
-  var empty = list.querySelector('.empty-log');
-  if(empty) empty.remove();
-  var now = new Date();
-  var time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  var el = document.createElement('div');
-  el.className = 'log-item';
-  var left = document.createElement('div');
-  left.style.cssText = 'display:flex;align-items:center;gap:6px;';
-  var av = makeAvatarEl(member, 20);
-  av.dataset.member = member;
-  var info = document.createElement('span');
-  var lbl = isResume ? '<span style="opacity:0.5;font-size:10px;">[再開]</span> ' : '';
-  info.innerHTML = '<b>'+member+'</b> '+lbl+'<span style="opacity:0.6;font-size:10px;">'+cardName+'</span>';
-  left.appendChild(av);
-  left.appendChild(info);
-  var right = document.createElement('div');
-  right.style.cssText = 'display:flex;gap:8px;align-items:center;';
-  right.innerHTML = '<span style="font-family:monospace;">'+fmt(seconds)+'</span><span style="opacity:0.5;font-size:10px;">'+time+'</span>';
-  el.appendChild(left);
-  el.appendChild(right);
-  list.insertBefore(el, list.firstChild);
-}
-
-function setRowPaused(rowEl, rowsId, facesId){
-  rowEl.className='timer-row paused';rowEl.dataset.state='paused';
-  rowEl.querySelector('.status-badge').className='status-badge badge-paused';
-  rowEl.querySelector('.status-badge').textContent='停止中';
-  rowEl.querySelector('.timer-val').className='timer-val paused';
-  var tb=rowEl.querySelector('.btn-toggle');tb.className='btn-toggle btn-paused';tb.textContent='再開';
-  rebuildFaceChips(rowsId, facesId);
-}
-
-function addMemberRow(key, member, rowsId, stopAllId, facesId, cardName){
-  var start = Date.now();
-  timers[key] = {start:start, accumulated:0, iv:null};
-
-  var rowEl = document.createElement('div');
-  rowEl.className='timer-row running';rowEl.dataset.state='running';rowEl.dataset.member=member;
-
-  var av = makeAvatarEl(member, 26);
-  av.dataset.member = member;
-
-  var ns = document.createElement('span');ns.className='timer-name';ns.textContent=member;
-  var badge = document.createElement('span');badge.className='status-badge badge-running';badge.textContent='計測中';
-  var vs = document.createElement('span');vs.className='timer-val running';vs.textContent='00:00:00';
-  var tb = document.createElement('button');tb.className='btn-toggle btn-running';tb.textContent='停止';
-
-  rowEl.appendChild(av);rowEl.appendChild(ns);rowEl.appendChild(badge);rowEl.appendChild(vs);rowEl.appendChild(tb);
-  document.getElementById(rowsId).appendChild(rowEl);
-
-  timers[key].iv = setInterval(function(){
-    vs.textContent = fmt(timers[key].accumulated + Math.floor((Date.now()-timers[key].start)/1000));
-  },1000);
-
-  rebuildFaceChips(rowsId, facesId);
-  updateStopAllBtn(rowsId, stopAllId);
-
-  tb.addEventListener('click', function(){
-    if(rowEl.dataset.state==='running'){
-      clearInterval(timers[key].iv);
-      var elapsed = timers[key].accumulated + Math.floor((Date.now()-timers[key].start)/1000);
-      timers[key].accumulated=elapsed;timers[key].start=null;timers[key].iv=null;
-      addLog(member, cardName, elapsed, false);
-      setRowPaused(rowEl, rowsId, facesId);
-      updateStopAllBtn(rowsId, stopAllId);
-    } else {
-      timers[key].start=Date.now();
-      timers[key].iv=setInterval(function(){vs.textContent=fmt(timers[key].accumulated+Math.floor((Date.now()-timers[key].start)/1000));},1000);
-      rowEl.className='timer-row running';rowEl.dataset.state='running';
-      badge.className='status-badge badge-running';badge.textContent='計測中';
-      vs.className='timer-val running';tb.className='btn-toggle btn-running';tb.textContent='停止';
-      addLog(member, cardName, timers[key].accumulated, true);
-      rebuildFaceChips(rowsId, facesId);
-      updateStopAllBtn(rowsId, stopAllId);
-    }
-  });
-}
-
-function setup(selId, btnId, rowsId, stopAllId, facesId, cardName){
-  document.getElementById(btnId).addEventListener('click', function(){
-    var sel=document.getElementById(selId);var member=sel.value;
-    if(!member){sel.style.border='2px solid #eb5a46';setTimeout(function(){sel.style.border='1px solid #c1c7d0';},1200);return;}
-    var key=rowsId+'__'+member;
-    if(timers[key])return;
-    sel.value='';
-    addMemberRow(key, member, rowsId, stopAllId, facesId, cardName);
-  });
-
-  document.getElementById(stopAllId).addEventListener('click', function(){
-    var rows=document.getElementById(rowsId);
-    Array.from(rows.children).forEach(function(rowEl){
-      if(rowEl.dataset.state!=='running')return;
-      var member=rowEl.dataset.member;var key=rowsId+'__'+member;
-      if(timers[key]){clearInterval(timers[key].iv);var elapsed=timers[key].accumulated+Math.floor((Date.now()-timers[key].start)/1000);timers[key].accumulated=elapsed;timers[key].start=null;timers[key].iv=null;addLog(member,cardName,elapsed,false);}
-      setRowPaused(rowEl,rowsId,facesId);
-    });
-    updateStopAllBtn(rowsId,stopAllId);
-  });
-}
-
-// 初期化（顔写真設定エリアの構築）
-buildSettings();
-
-
-// ==========================================
-// ここから Trello連携用の追加コード
-// ==========================================
-
-// Trelloと通信する準備
-var t = TrelloPowerUp.iframe();
-
-// 画面が開かれたときにTrelloからデータを取得する
-t.render(function(){
-  fetchTrelloCards();
-});
-
-function fetchTrelloCards() {
-  // ボード上の「すべてのリスト」と「すべてのカード」を取得
-  Promise.all([
-    t.lists('id', 'name'),
-    t.cards('id', 'name', 'idList', 'labels')
-  ]).then(function(values) {
-    var lists = values[0];
-    var cards = values[1];
-
-    // 「作業中」という名前のリストを探す
-    var targetList = lists.find(function(list) { return list.name === '作業中'; });
-
+  function renderCards(cards) {
     var container = document.getElementById('dynamic-cards-container');
+    container.innerHTML = ''; 
 
-    if (!targetList) {
-      container.innerHTML = '<div style="padding:10px; font-size:12px; color:#eb5a46; background:#fff; border-radius:4px;">「作業中」という名前のリストが見つかりません。Trello上にリストを作成してください。</div>';
-      return;
+    if (cards.length === 0) {
+       container.innerHTML = '<div style="padding:10px; font-size:12px; color:#5e6c84; background:#fff; border-radius:4px;">現在「作業中」のタスクはありません。</div>';
+       return;
     }
 
-    // 「作業中」リストに入っているカードだけに絞り込む
-    var targetCards = cards.filter(function(card) { return card.idList === targetList.id; });
+    cards.forEach(card => {
+      var cardId = card.id;
+      var labelHtml = '';
+      if (card.labels && card.labels.length > 0) {
+         var lbl = card.labels[0];
+         var colorClass = lbl.color === 'red' ? 'lbl-r' : (lbl.color === 'green' ? 'lbl-g' : 'lbl-y');
+         labelHtml = '<span class="label ' + colorClass + '">' + (lbl.name || 'ラベル') + '</span>';
+      }
 
-    renderCards(targetCards);
-  });
-}
-
-function renderCards(cards) {
-  var container = document.getElementById('dynamic-cards-container');
-  container.innerHTML = ''; // 「読み込み中...」の文字を消す
-
-  if (cards.length === 0) {
-     container.innerHTML = '<div style="padding:10px; font-size:12px; color:#5e6c84; background:#fff; border-radius:4px;">現在「作業中」のタスクはありません。</div>';
-     return;
-  }
-
-  // 取得したカードの数だけ、HTMLの枠を自動生成する
-  cards.forEach(function(card) {
-    var cardId = card.id; // Trello固有のID
-    
-    // ラベルの色をTrelloから引き継ぐ（簡易版）
-    var labelHtml = '';
-    if (card.labels && card.labels.length > 0) {
-       var lbl = card.labels[0];
-       var colorClass = lbl.color === 'red' ? 'lbl-r' : (lbl.color === 'green' ? 'lbl-g' : 'lbl-y');
-       labelHtml = '<span class="label ' + colorClass + '">' + (lbl.name || 'ラベル') + '</span>';
-    }
-
-    // TrelloのカードごとのHTMLブロックを生成
-    var cardHtml = `
-      <div class="card">
-        <div class="card-header">
-          <div class="card-icon" style="background:#f4f5f7;">📋</div>
-          <div class="card-meta">
-            ${labelHtml}
-            <div class="card-title">${card.name}</div>
+      var cardHtml = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon" style="background:#f4f5f7;">📋</div>
+            <div class="card-meta">
+              ${labelHtml}
+              <div class="card-title">${card.name}</div>
+            </div>
           </div>
+          <div class="active-faces" id="faces_${cardId}"></div>
+          <div class="add-row">
+            <select class="member-sel" id="sel_${cardId}"><option value="">作業者を選択</option></select>
+            <button class="btn-add" id="addbtn_${cardId}">+ 追加</button>
+            <button class="btn-stopall" id="stopall_${cardId}">&#9646;&#9646; 全員停止</button>
+          </div>
+          <div id="rows_${cardId}"></div>
         </div>
-        <div class="active-faces" id="faces_${cardId}"></div>
-        <div class="add-row">
-          <select class="member-sel" id="sel_${cardId}"><option value="">作業者を選択</option></select>
-          <button class="btn-add" id="addbtn_${cardId}">+ 追加</button>
-          <button class="btn-stopall" id="stopall_${cardId}">&#9646;&#9646; 全員停止</button>
-        </div>
-        <div id="rows_${cardId}"></div>
-      </div>
-    `;
-    
-    // コンテナにHTMLを追加
-    container.insertAdjacentHTML('beforeend', cardHtml);
+      `;
+      container.insertAdjacentHTML('beforeend', cardHtml);
 
-    // 追加したセレクトボックスにメンバー一覧をセット
-    var sel = document.getElementById('sel_' + cardId);
-    MEMBERS.forEach(function(name){
-      var opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      sel.appendChild(opt);
+      // セレクトボックスの用意
+      var sel = document.getElementById('sel_' + cardId);
+      MEMBERS.forEach(name => {
+        var opt = document.createElement('option');
+        opt.value = name; opt.textContent = name;
+        sel.appendChild(opt);
+      });
+
+      // ボタンのイベントを登録
+      setupCardActions(cardId, card.name);
     });
 
-    // 既存のタイマーロジック（setup関数）を割り当て
-    setup('sel_' + cardId, 'addbtn_' + cardId, 'rows_' + cardId, 'stopall_' + cardId, 'faces_' + cardId, card.name);
-  });
-}
+    // カードの枠が完成したので、Firebaseのデータに合わせてタイマーを描画
+    renderAllTimers();
+  }
+
+
+  // ==========================================
+  // 3. タイマーの描画とアクション
+  // ==========================================
+  function setupCardActions(cardId, cardName) {
+    document.getElementById('addbtn_' + cardId).addEventListener('click', () => {
+      var sel = document.getElementById('sel_' + cardId);
+      var member = sel.value;
+      if(!member){sel.style.border='2px solid #eb5a46';setTimeout(()=>{sel.style.border='1px solid #c1c7d0'},1200);return;}
+      var key = cardId + '_' + member;
+      if (currentFirebaseTimers[key]) return; // 既に存在する場合は無視
+
+      sel.value = '';
+      // Firebaseに「追加・開始」を書き込む
+      set(ref(db, 'timers/' + key), {
+        cardId: cardId, cardName: cardName, member: member,
+        state: 'running', startTime: Date.now(), accumulated: 0
+      });
+      addLogToFirebase(member, cardName, 0, true);
+    });
+
+    document.getElementById('stopall_' + cardId).addEventListener('click', () => {
+      for (let key in currentFirebaseTimers) {
+        let data = currentFirebaseTimers[key];
+        if (data.cardId === cardId && data.state === 'running') {
+          let elapsed = data.accumulated + Math.floor((Date.now() - data.startTime) / 1000);
+          update(ref(db, 'timers/' + key), { state: 'paused', accumulated: elapsed, startTime: null });
+          addLogToFirebase(data.member, data.cardName, elapsed, false);
+        }
+      }
+    });
+  }
+
+  function renderAllTimers() {
+    // 1. Firebaseにあるタイマーを画面に生成・更新
+    for (let key in currentFirebaseTimers) {
+      let data = currentFirebaseTimers[key];
+      let rowsContainer = document.getElementById('rows_' + data.cardId);
+      if (!rowsContainer) continue; // カードがまだ読み込まれていない場合はスキップ
+
+      let rowEl = document.getElementById('row_' + key);
+      if (!rowEl) {
+        rowEl = createRowEl(key, data);
+        rowsContainer.appendChild(rowEl);
+      }
+      updateRowVisuals(rowEl, key, data);
+    }
+
+    // 2. Firebaseから消えたタイマー（誰かが削除した等）があれば画面からも消す
+    document.querySelectorAll('.timer-row').forEach(row => {
+       let key = row.id.replace('row_', '');
+       if (!currentFirebaseTimers[key]) {
+          if (localTimers[key]) { clearInterval(localTimers[key]); delete localTimers[key]; }
+          row.remove();
+       }
+    });
+
+    // 3. 各カードの顔アイコンと全員停止ボタンの表示を調整
+    document.querySelectorAll('.card').forEach(cardEl => {
+        let facesEl = cardEl.querySelector('.active-faces');
+        if(facesEl) {
+            let cardId = facesEl.id.replace('faces_', '');
+            refreshFaceChips(cardId);
+            updateStopAllBtn(cardId);
+        }
+    });
+  }
+
+  function createRowEl(key, data) {
+    var rowEl = document.createElement('div');
+    rowEl.id = 'row_' + key;
+    rowEl.dataset.member = data.member;
+
+    var av = makeAvatarEl(data.member, 26);
+    av.dataset.member = data.member;
+
+    var ns = document.createElement('span'); ns.className='timer-name'; ns.textContent=data.member;
+    var badge = document.createElement('span'); badge.className='status-badge badge-status';
+    var vs = document.createElement('span'); vs.className='timer-val val-text';
+    var tb = document.createElement('button'); tb.className='btn-toggle btn-action';
+
+    rowEl.appendChild(av); rowEl.appendChild(ns); rowEl.appendChild(badge); rowEl.appendChild(vs); rowEl.appendChild(tb);
+
+    tb.addEventListener('click', () => { toggleFirebaseTimer(key); });
+    return rowEl;
+  }
+
+  function updateRowVisuals(rowEl, key, data) {
+    let badge = rowEl.querySelector('.badge-status');
+    let vs = rowEl.querySelector('.val-text');
+    let tb = rowEl.querySelector('.btn-action');
+
+    if (data.state === 'running') {
+      rowEl.className = 'timer-row running';
+      badge.className = 'status-badge badge-running badge-status'; badge.textContent = '計測中';
+      vs.className = 'timer-val running val-text';
+      tb.className = 'btn-toggle btn-running btn-action'; tb.textContent = '停止';
+
+      // 1秒ごとに画面の時間を進める
+      if (!localTimers[key]) {
+        localTimers[key] = setInterval(() => {
+          vs.textContent = fmt(data.accumulated + Math.floor((Date.now() - data.startTime) / 1000));
+        }, 1000);
+      }
+      vs.textContent = fmt(data.accumulated + Math.floor((Date.now() - data.startTime) / 1000));
+    } else {
+      rowEl.className = 'timer-row paused';
+      badge.className = 'status-badge badge-paused badge-status'; badge.textContent = '停止中';
+      vs.className = 'timer-val paused val-text';
+      vs.textContent = fmt(data.accumulated);
+      tb.className = 'btn-toggle btn-paused btn-action'; tb.textContent = '再開';
+
+      // 秒針を止める
+      if (localTimers[key]) { clearInterval(localTimers[key]); delete localTimers[key]; }
+    }
+  }
+
+  function toggleFirebaseTimer(key) {
+    let data = currentFirebaseTimers[key];
+    if (!data) return;
+
+    if (data.state === 'running') {
+      let elapsed = data.accumulated + Math.floor((Date.now() - data.startTime) / 1000);
+      update(ref(db, 'timers/' + key), { state: 'paused', accumulated: elapsed, startTime: null });
+      addLogToFirebase(data.member, data.cardName, elapsed, false);
+    } else {
+      update(ref(db, 'timers/' + key), { state: 'running', startTime: Date.now() });
+      addLogToFirebase(data.member, data.cardName, data.accumulated, true);
+    }
+  }
+
+
+  // ==========================================
+  // 4. ユーティリティ・その他の描画機能
+  // ==========================================
+  function getColor(n){if(!memberColors[n]){memberColors[n]=palettes[colorIdx%palettes.length];colorIdx++;}return memberColors[n];}
+  function fmt(s){return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor((s%3600)/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+
+  function makeAvatarEl(member, size){
+    var wrap = document.createElement('div');
+    wrap.className = 't-avatar'; wrap.style.width = size+'px'; wrap.style.height = size+'px';
+    if(memberPhotos[member]){
+      var img = document.createElement('img'); img.src = memberPhotos[member]; wrap.appendChild(img);
+    } else {
+      var col = getColor(member); wrap.style.background = col.bg; wrap.style.color = col.fg; wrap.textContent = member.slice(0,2);
+    }
+    return wrap;
+  }
+
+  function buildSettings(){
+    var container = document.getElementById('memberSettings');
+    container.innerHTML = '';
+    MEMBERS.forEach(name => {
+      var item = document.createElement('div'); item.className = 'member-setting-item';
+      var uploadArea = document.createElement('div'); uploadArea.className = 'photo-upload-area';
+      if(memberPhotos[name]){
+        var img = document.createElement('img'); img.src = memberPhotos[name]; uploadArea.appendChild(img);
+      } else {
+        var ph = document.createElement('span'); ph.className = 'photo-placeholder'; ph.textContent = '+'; uploadArea.appendChild(ph);
+      }
+
+      var fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'image/*';
+      fileInput.addEventListener('change', e => {
+        var file = e.target.files[0]; if(!file) return;
+        var reader = new FileReader();
+        reader.onload = ev => {
+          // Firebaseに画像を保存（全ユーザーに瞬時に反映されます）
+          set(ref(db, 'photos/' + name), ev.target.result);
+        };
+        reader.readAsDataURL(file);
+      });
+      uploadArea.appendChild(fileInput);
+
+      var info = document.createElement('div');
+      var nm = document.createElement('div'); nm.className = 'member-setting-name'; nm.textContent = name;
+      var hint = document.createElement('div'); hint.className = 'member-setting-hint'; hint.textContent = memberPhotos[name] ? '登録済み' : '写真を追加';
+      info.appendChild(nm); info.appendChild(hint);
+      item.appendChild(uploadArea); item.appendChild(info); container.appendChild(item);
+    });
+  }
+
+  function refreshFaceChips(cardId){
+    var facesEl = document.getElementById('faces_' + cardId);
+    if (!facesEl) return;
+    facesEl.innerHTML = '';
+    for (let key in currentFirebaseTimers) {
+      let data = currentFirebaseTimers[key];
+      if (data.cardId === cardId) {
+        var chip = document.createElement('div'); chip.className = 'face-chip';
+        chip.title = data.member + (data.state === 'running' ? ' (計測中)' : ' (停止中)');
+        chip.style.opacity = data.state === 'running' ? '1' : '0.4';
+        if(memberPhotos[data.member]){
+          var img = document.createElement('img'); img.src = memberPhotos[data.member]; chip.appendChild(img);
+        } else {
+          var col = getColor(data.member); chip.style.background = col.bg; chip.style.color = col.fg; chip.style.fontSize = '10px'; chip.textContent = data.member.slice(0,2);
+        }
+        facesEl.appendChild(chip);
+      }
+    }
+  }
+
+  function refreshAllTimerAvatars(){
+    document.querySelectorAll('.t-avatar[data-member]').forEach(el => {
+      var member = el.dataset.member;
+      el.innerHTML = '';
+      if(memberPhotos[member]){
+        var img = document.createElement('img'); img.src = memberPhotos[member]; el.appendChild(img);
+        el.style.background = ''; el.style.color = '';
+      } else {
+        var col = getColor(member); el.style.background = col.bg; el.style.color = col.fg; el.textContent = member.slice(0,2);
+      }
+    });
+  }
+
+  function updateStopAllBtn(cardId){
+    var btn = document.getElementById('stopall_' + cardId);
+    if(!btn) return;
+    let runningCount = 0;
+    for (let key in currentFirebaseTimers) {
+      if (currentFirebaseTimers[key].cardId === cardId && currentFirebaseTimers[key].state === 'running') runningCount++;
+    }
+    btn.style.display = runningCount >= 2 ? 'inline-block' : 'none';
+  }
+
+  function addLogToFirebase(member, cardName, seconds, isResume) {
+    push(ref(db, 'logs'), { member: member, cardName: cardName, seconds: seconds, isResume: isResume, timestamp: Date.now() });
+  }
+
+  function renderLogs(logsObj) {
+    var list = document.getElementById('logList');
+    list.innerHTML = '';
+    let logsArr = Object.values(logsObj).sort((a, b) => b.timestamp - a.timestamp); // 新しい順に並び替え
+    
+    if (logsArr.length === 0) {
+        list.innerHTML = '<div class="empty-log">まだ記録がありません</div>'; return;
+    }
+    // 最新50件のみ表示
+    logsArr.slice(0, 50).forEach(log => {
+      var timeStr = new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      var el = document.createElement('div'); el.className = 'log-item';
+      var left = document.createElement('div'); left.style.cssText = 'display:flex;align-items:center;gap:6px;';
+      var av = makeAvatarEl(log.member, 20); av.dataset.member = log.member;
+      var info = document.createElement('span');
+      var lbl = log.isResume ? '<span style="opacity:0.5;font-size:10px;">[開始]</span> ' : '<span style="opacity:0.5;font-size:10px;">[停止]</span> ';
+      info.innerHTML = '<b>'+log.member+'</b> '+lbl+'<span style="opacity:0.6;font-size:10px;">'+log.cardName+'</span>';
+      left.appendChild(av); left.appendChild(info);
+      var right = document.createElement('div'); right.style.cssText = 'display:flex;gap:8px;align-items:center;';
+      right.innerHTML = '<span style="font-family:monospace;">'+fmt(log.seconds)+'</span><span style="opacity:0.5;font-size:10px;">'+timeStr+'</span>';
+      el.appendChild(left); el.appendChild(right); list.appendChild(el);
+    });
+  }
 </script>
 </body>
 </html>
