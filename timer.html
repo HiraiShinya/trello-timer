@@ -261,22 +261,56 @@
 
   t.render(function(){ fetchTrelloCards(); });
 
+// =========================================================================
+  // ★追加：10秒ごとにTrelloの最新情報を取得する自動ループ（リアルタイム同期）
+  // =========================================================================
+  setInterval(function() {
+    fetchTrelloCards();
+  }, 10000); // 10000ミリ秒 = 10秒ごと（Trelloへの負荷を考慮して10秒にしています）
+
+  // 初回読み込み用
+  t.render(function(){ fetchTrelloCards(); });
+
   function fetchTrelloCards() {
     Promise.all([ t.lists('id', 'name'), t.cards('id', 'name', 'idList', 'labels') ]).then(function(values) {
       var targetList = values[0].find(list => list.name === '作業中');
       if (!targetList) return;
+      
+      // 「作業中」リストに入っている最新のカード一覧だけを抽出して渡す
       renderCardsToFactory(values[1].filter(card => card.idList === targetList.id));
     });
   }
 
+  // =========================================================================
+  // ★改修：画面をチラつかせずに、新しいカードだけを追加・不要なカードを消す処理
+  // =========================================================================
   function renderCardsToFactory(cards) {
     var factory = document.getElementById('hidden-card-factory');
-    document.getElementById('zone_unassigned').innerHTML = ''; 
+    var unassignedZone = document.getElementById('zone_unassigned');
+    
+    // 【変更点】 innerHTML = '' で全消しするのをやめました！
+    // 代わりに「ローディング中」の文字があれば消します
+    var loadingMsg = unassignedZone.querySelector('div[style*="color:#5e6c84"]');
+    if (loadingMsg) loadingMsg.remove();
 
+    // 1. 今回Trelloから取得した「最新のカードIDリスト」を作る
+    var currentTrelloCardIds = cards.map(c => c.id);
+
+    // 2. 画面上にあって、Trello側に無い（移動された・消された）カードを画面からスッと消す
+    document.querySelectorAll('.card-item').forEach(cardEl => {
+      if (!currentTrelloCardIds.includes(cardEl.dataset.cardId)) {
+        cardEl.remove(); // 画面から削除
+      }
+    });
+
+    // 3. Trelloのカードを1枚ずつチェックし、まだ画面になければ新しく作る！
     cards.forEach(card => {
       var cardId = card.id;
+      
+      // すでに画面（HTML）上に存在していれば、何もしない（タイマー状態などを維持する）
       if(document.getElementById('card_' + cardId)) return;
 
+      // 画面に存在しない＝【新しく追加されたカード】なので、HTMLを組み立てる
       var cardHtml = `
         <div class="card-item" id="card_${cardId}" data-card-id="${cardId}">
           <div class="working-badge">作業中</div>
@@ -298,8 +332,10 @@
           </div>
         </div>
       `;
+      // 一旦、隠しファクトリーに作る
       factory.insertAdjacentHTML('beforeend', cardHtml);
 
+      // ボタンなどを設定する処理（ここは今までと同じ）
       var quickList = document.getElementById('quick_' + cardId);
       MEMBERS.forEach(name => {
         var btn = document.createElement('button');
@@ -324,7 +360,10 @@
       });
     });
 
+    // Firebaseの位置情報（positions）をもとに、各カードを正しいレーン（未割当含む）にスッと配置する
     syncCardPositions();
+    
+    // タイマーの状態も最新にする
     renderAllTimers();
   }
 
