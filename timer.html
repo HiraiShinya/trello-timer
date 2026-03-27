@@ -137,6 +137,42 @@
   body.has-highlight .member-slot.highlight-active { box-shadow: 0 0 0 3px #ff9800, inset 0 0 10px rgba(255,152,0,0.3); background: #fff8e1; border-color: #ff9800; }
   body.has-highlight .lane-label { opacity: 0.4; }
   body.has-highlight .lane-row.highlight-active .lane-label { opacity: 1; background: #ff9800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  /* =========================================
+     🏷️ Trelloそっくりラベル用のCSS
+     ========================================= */
+  .trello-labels-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px; /* 顔写真との間の余白 */
+  }
+  .trello-label {
+    display: inline-block;
+    padding: 0 8px;
+    min-width: 40px; /* 文字がないラベル用 */
+    height: 16px;
+    line-height: 16px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Trelloの標準カラーマッピング */
+  .t-label-green  { background-color: #4bce97; color: #1d2125; }
+  .t-label-yellow { background-color: #f5cd47; color: #1d2125; }
+  .t-label-orange { background-color: #fea362; color: #1d2125; }
+  .t-label-red    { background-color: #f87168; color: #1d2125; }
+  .t-label-purple { background-color: #9f8fef; color: #1d2125; }
+  .t-label-blue   { background-color: #579dff; color: #1d2125; }
+  .t-label-sky    { background-color: #6cc3e0; color: #1d2125; }
+  .t-label-lime   { background-color: #94c748; color: #1d2125; }
+  .t-label-pink   { background-color: #e774bb; color: #1d2125; }
+  .t-label-black  { background-color: #8c9bab; color: #1d2125; }
+  .t-label-default{ background-color: #091e420f; color: #1d2125; } /* 色なし用 */
   </style>
 </head>
 <body>
