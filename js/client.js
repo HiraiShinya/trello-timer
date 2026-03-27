@@ -4,7 +4,12 @@ window.TrelloPowerUp.initialize({
   // ==========================================
   'board-buttons': function(t, options) {
     return [{
-      text: 'レーン管理',
+      // ★ここを追加！：専用のアイコン画像（時計マーク）を設定します
+      icon: 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%2344546f%22%3E%3Cpath%20d%3D%22M11.99%202C6.47%202%202%206.48%202%2012s4.47%2010%209.99%2010C17.52%2022%2022%2017.52%2022%2012S17.52%202%2011.99%202zM12%2020c-4.42%200-8-3.58-8-8s3.58-8%208-8%208%203.58%208%208-3.58%208-8%208zm.5-13H11v6l5.25%203.15.75-1.23-4.5-2.67z%22%2F%3E%3C%2Fsvg%3E',
+      
+      // 絵文字は外して、テキストのみにします
+      text: 'レーン管理', 
+      
       callback: function(t) {
         return t.modal({
           url: './timer.html',
