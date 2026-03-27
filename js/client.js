@@ -4,7 +4,7 @@ window.TrelloPowerUp.initialize({
   // ==========================================
   'board-buttons': function(t, options) {
     return [{
-      text: '⏱️ 一括タイマー管理',
+      text: '⏱️',
       callback: function(t) {
         return t.modal({
           url: './timer.html',
