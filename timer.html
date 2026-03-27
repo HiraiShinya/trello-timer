@@ -137,6 +137,7 @@
   body.has-highlight .member-slot.highlight-active { box-shadow: 0 0 0 3px #ff9800, inset 0 0 10px rgba(255,152,0,0.3); background: #fff8e1; border-color: #ff9800; }
   body.has-highlight .lane-label { opacity: 0.4; }
   body.has-highlight .lane-row.highlight-active .lane-label { opacity: 1; background: #ff9800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
   /* =========================================
      🏷️ Trelloそっくりラベル用のCSS
      ========================================= */
@@ -295,14 +296,12 @@
   onValue(ref(db, 'logs'), (snapshot) => { renderLogs(snapshot.val() || {}); });
   onValue(ref(db, 'positions'), (snapshot) => { currentPositions = snapshot.val() || {}; syncCardPositions(); });
 
-  t.render(function(){ fetchTrelloCards(); });
-
-// =========================================================================
+  // =========================================================================
   // ★追加：10秒ごとにTrelloの最新情報を取得する自動ループ（リアルタイム同期）
   // =========================================================================
   setInterval(function() {
     fetchTrelloCards();
-  }, 10000); // 10000ミリ秒 = 10秒ごと（Trelloへの負荷を考慮して10秒にしています）
+  }, 10000); // 10000ミリ秒 = 10秒ごと
 
   // 初回読み込み用
   t.render(function(){ fetchTrelloCards(); });
@@ -324,27 +323,36 @@
     var factory = document.getElementById('hidden-card-factory');
     var unassignedZone = document.getElementById('zone_unassigned');
     
-    // 【変更点】 innerHTML = '' で全消しするのをやめました！
-    // 代わりに「ローディング中」の文字があれば消します
     var loadingMsg = unassignedZone.querySelector('div[style*="color:#5e6c84"]');
     if (loadingMsg) loadingMsg.remove();
 
-    // 1. 今回Trelloから取得した「最新のカードIDリスト」を作る
     var currentTrelloCardIds = cards.map(c => c.id);
 
-    // 2. 画面上にあって、Trello側に無い（移動された・消された）カードを画面からスッと消す
     document.querySelectorAll('.card-item').forEach(cardEl => {
       if (!currentTrelloCardIds.includes(cardEl.dataset.cardId)) {
         cardEl.remove(); // 画面から削除
       }
     });
 
-    // 3. Trelloのカードを1枚ずつチェックし、まだ画面になければ新しく作る！
     cards.forEach(card => {
       var cardId = card.id;
       
       // すでに画面（HTML）上に存在していれば、何もしない（タイマー状態などを維持する）
       if(document.getElementById('card_' + cardId)) return;
+
+      // ==========================================
+      // ★追加：ラベルのHTMLを組み立てる処理
+      // ==========================================
+      var labelsHtml = '';
+      if (card.labels && card.labels.length > 0) {
+        labelsHtml = '<div class="trello-labels-container">';
+        card.labels.forEach(label => {
+          // Trelloから来た色名（yellowなど）をCSSのクラス名に変換
+          var colorClass = label.color ? 't-label-' + label.color : 't-label-default';
+          labelsHtml += `<span class="trello-label ${colorClass}">${label.name || ''}</span>`;
+        });
+        labelsHtml += '</div>';
+      }
 
       // 画面に存在しない＝【新しく追加されたカード】なので、HTMLを組み立てる
       var cardHtml = `
@@ -353,7 +361,8 @@
           
           <div class="card-left">
             <div class="card-header">${card.name}</div>
-            <div class="card-body">
+            
+            ${labelsHtml} <div class="card-body">
               <div style="font-size:10px; color:#888; margin-bottom:2px;">タップでアサイン（横スクロール可）</div>
               <div class="quick-member-list" id="quick_${cardId}"></div>
               <button class="btn-batch" id="batch_${cardId}"></button>
@@ -371,7 +380,7 @@
       // 一旦、隠しファクトリーに作る
       factory.insertAdjacentHTML('beforeend', cardHtml);
 
-      // ボタンなどを設定する処理（ここは今までと同じ）
+      // ボタンなどを設定する処理
       var quickList = document.getElementById('quick_' + cardId);
       MEMBERS.forEach(name => {
         var btn = document.createElement('button');
@@ -396,7 +405,7 @@
       });
     });
 
-    // Firebaseの位置情報（positions）をもとに、各カードを正しいレーン（未割当含む）にスッと配置する
+    // Firebaseの位置情報（positions）をもとに、各カードを正しいレーンに配置
     syncCardPositions();
     
     // タイマーの状態も最新にする
