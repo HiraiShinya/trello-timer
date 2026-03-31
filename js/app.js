@@ -213,6 +213,7 @@ function renderCardsToFactory(cards) {
             gap:8px 6px; 
             background:#fcfcfc;
             align-content: start;
+            margin:auto;
           ">
             <div class="member-slot empty-slot" id="slot_${cardId}_0" style="height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 0; box-sizing:border-box;"></div>
             <div class="member-slot empty-slot" id="slot_${cardId}_1" style="height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 0; box-sizing:border-box;"></div>
