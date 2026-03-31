@@ -174,7 +174,7 @@ function renderCardsToFactory(cards) {
           display:flex; 
           flex: 0 0 420px; 
           min-width: 420px; 
-          min-height: 180px; 
+          min-height: auto; 
           overflow:visible; 
           align-items: stretch; 
           margin-right: 12px; 
