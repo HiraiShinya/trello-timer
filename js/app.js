@@ -133,7 +133,6 @@ function renderCardsToFactory(cards) {
 
   var currentTrelloCardIds = cards.map(c => c.id);
 
-  // リスト「作業中」から消えたカードを、画面から消去
   document.querySelectorAll('.card-item').forEach(cardEl => {
     if (!currentTrelloCardIds.includes(cardEl.dataset.cardId)) {
       cardEl.remove();
@@ -144,7 +143,6 @@ function renderCardsToFactory(cards) {
     var cardId = card.id;
     if (document.getElementById('card_' + cardId)) return;
 
-    // --- ラベルHTML（折り返し対応と中央揃え） ---
     var labelsHtml = '';
     if (card.labels && card.labels.length > 0) {
       labelsHtml = '<div class="trello-labels-container" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">';
@@ -155,44 +153,18 @@ function renderCardsToFactory(cards) {
       labelsHtml += '</div>';
     }
 
-    // --- カード本体のHTML（レイアウト・タイマー見切れ・タイトル対策） ---
     var cardHtml = `
-        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; min-height:140px; overflow:hidden; align-items: stretch;">
+        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; min-height:160px; overflow:hidden; align-items: stretch;">
           <div class="working-badge">作業中</div>
 
           <div class="card-left" style="flex: 1; min-width: 0; padding: 12px 10px; display: flex; flex-direction: column; justify-content: space-between; overflow:hidden;">
             <div>
-              <div class="card-header" style="
-                font-weight:bold; 
-                margin-bottom:8px; 
-                line-height:1.4; 
-                font-size:14px;
-                color: #172b4d;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-              " title="${card.name}">${card.name}</div>
-
+              <div class="card-header" style="font-weight:bold; margin-bottom:8px; line-height:1.4; font-size:14px; color: #172b4d; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${card.name}">${card.name}</div>
               <div class="card-meta-row" style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
                 ${labelsHtml}
-                <button class="btn-open-detail" id="detail_${cardId}" title="別タブで詳細を開く" style="
-                  border:1px solid #dfe1e6; 
-                  background:#f4f5f7; 
-                  border-radius:3px; 
-                  padding:0 8px; 
-                  cursor:pointer; 
-                  color:#5e6c84; 
-                  font-size:11px; 
-                  height:22px; 
-                  display:flex; 
-                  align-items:center; 
-                  white-space:nowrap; 
-                  flex-shrink:0;
-                ">🔍 詳細</button>
+                <button class="btn-open-detail" id="detail_${cardId}" title="別タブで詳細を開く" style="border:1px solid #dfe1e6; background:#f4f5f7; border-radius:3px; padding:0 8px; cursor:pointer; color:#5e6c84; font-size:11px; height:22px; display:flex; align-items:center; white-space:nowrap; flex-shrink:0;">🔍 詳細</button>
               </div>
             </div>
-
             <div class="card-body" style="margin-top:auto;">
               <div style="font-size:10px; color:#888; margin-bottom:4px;">タップでアサイン（横スクロール可）</div>
               <div class="quick-member-list" id="quick_${cardId}"></div>
@@ -204,44 +176,37 @@ function renderCardsToFactory(cards) {
             width:150px; 
             flex-shrink:0; 
             border-left:1px dashed #ddd; 
-            padding:10px 6px; 
+            padding:8px 4px; 
             display:grid; 
             grid-template-columns: 1fr 1fr; 
             grid-template-rows: 1fr 1fr; 
-            gap:8px; 
+            gap:6px; 
             background:#fcfcfc;
-            align-content: center;
+            align-content: start;
           ">
-            <div class="member-slot empty-slot" id="slot_${cardId}_0" style="min-height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_1" style="min-height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_2" style="min-height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_3" style="min-height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_0" style="min-height:85px; padding:4px 0;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_1" style="min-height:85px; padding:4px 0;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_2" style="min-height:85px; padding:4px 0;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_3" style="min-height:85px; padding:4px 0;"></div>
           </div>
         </div>
       `;
     factory.insertAdjacentHTML('beforeend', cardHtml);
 
-    // --- イベント設定 ---
-
-    // 1. 詳細ボタン：window.openで別タブ展開
     document.getElementById('detail_' + cardId).addEventListener('click', (e) => {
-      e.stopPropagation(); 
+      e.stopPropagation();
       window.open(`https://trello.com/c/${cardId}`, '_blank');
     });
 
-    // 2. クイックアサインボタンの設定
     var quickList = document.getElementById('quick_' + cardId);
     MEMBERS.forEach(name => {
       var btn = document.createElement('button');
       btn.className = 'quick-add-btn';
       btn.dataset.memberName = name;
-      var avatar = makeAvatarEl(name, 18);
-      avatar.dataset.member = name;
-      btn.appendChild(avatar);
+      btn.appendChild(makeAvatarEl(name, 18));
       var nameSpan = document.createElement('span');
       nameSpan.textContent = name;
       btn.appendChild(nameSpan);
-
       btn.addEventListener('click', () => {
         if (btn.classList.contains('added')) return;
         addMemberToCard(cardId, card.name, name);
@@ -249,7 +214,6 @@ function renderCardsToFactory(cards) {
       quickList.appendChild(btn);
     });
 
-    // 3. 一括操作ボタンの設定
     document.getElementById('batch_' + cardId).addEventListener('click', () => {
       toggleBatchTimersForCard(cardId);
     });
