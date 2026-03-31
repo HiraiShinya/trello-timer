@@ -154,7 +154,7 @@ function renderCardsToFactory(cards) {
     }
 
     var cardHtml = `
-        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; min-height:210px; overflow:visible; align-items: stretch; margin-bottom: 10px; box-sizing: border-box; position:relative;">
+        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; min-height:250px; overflow:visible; align-items: stretch; margin-bottom: 10px; box-sizing: border-box; position:relative;">
           <div class="working-badge" style="position:absolute; top:-5px; left:10px; z-index:10;">作業中</div>
 
           <div class="card-left" style="flex: 1; min-width: 0; padding: 20px 10px 10px 12px; display: flex; flex-direction: column; overflow:visible;">
