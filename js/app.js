@@ -142,45 +142,80 @@ function renderCardsToFactory(cards) {
 
   cards.forEach(card => {
     var cardId = card.id;
-
     if (document.getElementById('card_' + cardId)) return;
 
-    // --- ラベルと詳細ボタンを横並びにするHTML作成 ---
+    // --- ラベルHTML（折り返し対応と中央揃え） ---
     var labelsHtml = '';
     if (card.labels && card.labels.length > 0) {
-      labelsHtml = '<div class="trello-labels-container" style="display:inline-block; vertical-align:middle;">';
+      labelsHtml = '<div class="trello-labels-container" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">';
       card.labels.forEach(label => {
         var colorClass = label.color ? 't-label-' + label.color : 't-label-default';
-        labelsHtml += `<span class="trello-label ${colorClass}">${label.name || ''}</span>`;
+        labelsHtml += `<span class="trello-label ${colorClass}" style="margin:0; font-size:10px; padding:2px 6px; white-space:nowrap;">${label.name || ''}</span>`;
       });
       labelsHtml += '</div>';
     }
 
-    // 画面に存在しない＝【新しく追加されたカード】のHTML
+    // --- カード本体のHTML（レイアウト・タイマー見切れ・タイトル対策） ---
     var cardHtml = `
-        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}">
+        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; min-height:140px; overflow:hidden; align-items: stretch;">
           <div class="working-badge">作業中</div>
 
-          <div class="card-left">
-            <div class="card-header">${card.name}</div>
+          <div class="card-left" style="flex: 1; min-width: 0; padding: 12px 10px; display: flex; flex-direction: column; justify-content: space-between; overflow:hidden;">
+            <div>
+              <div class="card-header" style="
+                font-weight:bold; 
+                margin-bottom:8px; 
+                line-height:1.4; 
+                font-size:14px;
+                color: #172b4d;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+              " title="${card.name}">${card.name}</div>
 
-            <div class="card-meta-row" style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-              ${labelsHtml}
-              <button class="btn-open-detail" id="detail_${cardId}" title="Trelloで詳細を開く" style="border:none; background:#f4f5f7; border-radius:3px; padding:2px 6px; cursor:pointer; color:#5e6c84; font-size:11px; display:flex; align-items:center;">🔍 詳細</button>
+              <div class="card-meta-row" style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+                ${labelsHtml}
+                <button class="btn-open-detail" id="detail_${cardId}" title="別タブで詳細を開く" style="
+                  border:1px solid #dfe1e6; 
+                  background:#f4f5f7; 
+                  border-radius:3px; 
+                  padding:0 8px; 
+                  cursor:pointer; 
+                  color:#5e6c84; 
+                  font-size:11px; 
+                  height:22px; 
+                  display:flex; 
+                  align-items:center; 
+                  white-space:nowrap; 
+                  flex-shrink:0;
+                ">🔍 詳細</button>
+              </div>
             </div>
 
-            <div class="card-body">
-              <div style="font-size:10px; color:#888; margin-bottom:2px;">タップでアサイン（横スクロール可）</div>
+            <div class="card-body" style="margin-top:auto;">
+              <div style="font-size:10px; color:#888; margin-bottom:4px;">タップでアサイン（横スクロール可）</div>
               <div class="quick-member-list" id="quick_${cardId}"></div>
-              <button class="btn-batch" id="batch_${cardId}"></button>
+              <button class="btn-batch" id="batch_${cardId}" style="margin-top:8px;"></button>
             </div>
           </div>
 
-          <div class="card-right" id="slots_${cardId}">
-            <div class="member-slot empty-slot" id="slot_${cardId}_0"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_1"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_2"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_3"></div>
+          <div class="card-right" id="slots_${cardId}" style="
+            width:150px; 
+            flex-shrink:0; 
+            border-left:1px dashed #ddd; 
+            padding:10px 6px; 
+            display:grid; 
+            grid-template-columns: 1fr 1fr; 
+            grid-template-rows: 1fr 1fr; 
+            gap:8px; 
+            background:#fcfcfc;
+            align-content: center;
+          ">
+            <div class="member-slot empty-slot" id="slot_${cardId}_0" style="min-height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_1" style="min-height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_2" style="min-height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_3" style="min-height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center;"></div>
           </div>
         </div>
       `;
@@ -188,10 +223,10 @@ function renderCardsToFactory(cards) {
 
     // --- イベント設定 ---
 
-    // 1. 詳細ボタンのイベント設定
+    // 1. 詳細ボタン：window.openで別タブ展開
     document.getElementById('detail_' + cardId).addEventListener('click', (e) => {
-      e.stopPropagation(); // 親要素（ドラッグ等）へのイベント伝播を防ぐ
-      t.showCard(cardId);  // Trelloの標準詳細画面を開く
+      e.stopPropagation(); 
+      window.open(`https://trello.com/c/${cardId}`, '_blank');
     });
 
     // 2. クイックアサインボタンの設定
