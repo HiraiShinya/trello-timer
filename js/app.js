@@ -39,16 +39,22 @@ for (let i = 1; i <= 15; i++) {
   let collapsedClass = isCollapsed ? ' collapsed' : '';
   let iconTxt = isCollapsed ? '▶' : '▼';
 
-  lanesContainer.insertAdjacentHTML('beforeend', `
-      <div class="lane-row${collapsedClass}">
-        <div class="lane-label" data-lane="${i}">
-          <span>${i}レーン</span>
-          <span class="toggle-icon">${iconTxt}</span>
-          <span class="card-count-badge" id="count_badge_${zoneId}">0件</span>
-        </div>
-        <div class="dropzone" id="${zoneId}"></div>
-      </div>
-    `);
+// レーン作成ループ（HTML生成部分）
+lanesContainer.insertAdjacentHTML('beforeend', `
+    <div class="lane-row${collapsedClass}">
+      <div class="lane-label" data-lane="${i}"> ... </div>
+      <div class="dropzone" id="${zoneId}" style="
+        display: flex !important;
+        flex-flow: row nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        padding: 10px;
+        min-height: 200px;
+        gap: 12px;
+        align-items: flex-start;
+      "></div>
+    </div>
+`);
 }
 
 // レーンのアコーディオン（開閉）機能
@@ -153,8 +159,22 @@ function renderCardsToFactory(cards) {
       labelsHtml += '</div>';
     }
 
+    // --- 修正ポイント：flex: 0 0 420px と min-width を指定して横幅を固定 ---
     var cardHtml = `
-        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; min-height:auto; overflow:visible; align-items: stretch; margin-bottom: 10px; box-sizing: border-box; position:relative;">
+        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="
+          display:flex; 
+          flex: 0 0 420px; 
+          min-width: 420px; 
+          min-height: 180px; 
+          overflow:visible; 
+          align-items: stretch; 
+          margin-right: 12px; 
+          box-sizing: border-box; 
+          position:relative;
+          background: #fff;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+        ">
           <div class="working-badge" style="position:absolute; top:-5px; left:10px; z-index:10;">作業中</div>
 
           <div class="card-left" style="flex: 1; min-width: 0; padding: 20px 10px 10px 12px; display: flex; flex-direction: column; overflow:visible;">
@@ -166,9 +186,9 @@ function renderCardsToFactory(cards) {
               </div>
             </div>
             
-            <div class="card-body">
+            <div class="card-body" style="margin-top:auto;">
               <div style="font-size:10px; color:#888; margin-bottom:4px;">タップでアサイン</div>
-              <div class="quick-member-list" id="quick_${cardId}"></div>
+              <div class="quick-member-list" id="quick_${cardId}" style="display:flex; gap:4px; overflow-x:auto;"></div>
               <button class="btn-batch" id="batch_${cardId}" style="margin-top:10px;"></button>
             </div>
           </div>
@@ -181,15 +201,14 @@ function renderCardsToFactory(cards) {
             display:grid; 
             grid-template-columns: 1fr 1fr; 
             grid-template-rows: 75px 75px; 
-            gap:12px 6px; 
+            gap:8px 6px; 
             background:#fcfcfc;
             align-content: start;
-            margin:auto;
           ">
-            <div class="member-slot empty-slot" id="slot_${cardId}_0" style="height:80px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 0; box-sizing:border-box;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_1" style="height:80px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 0; box-sizing:border-box;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_2" style="height:80px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 0; box-sizing:border-box;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_3" style="height:80px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 0; box-sizing:border-box;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_0" style="height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 0; box-sizing:border-box;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_1" style="height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 0; box-sizing:border-box;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_2" style="height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 0; box-sizing:border-box;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_3" style="height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px 0; box-sizing:border-box;"></div>
           </div>
         </div>
       `;
