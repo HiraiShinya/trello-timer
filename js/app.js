@@ -61,6 +61,7 @@ lanesContainer.insertAdjacentHTML('beforeend', `
         gap: 12px;
         align-items: flex-start;
         background: #f8f9fa; /* 境界がわかりやすいよう薄い色をつけています */
+        margin:auto;
       "></div>
     </div>
 `);
