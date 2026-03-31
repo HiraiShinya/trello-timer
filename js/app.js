@@ -39,26 +39,16 @@ for (let i = 1; i <= 15; i++) {
   let collapsedClass = isCollapsed ? ' collapsed' : '';
   let iconTxt = isCollapsed ? '▶' : '▼';
 
-lanesContainer.insertAdjacentHTML('beforeend', `
-    <div class="lane-row${collapsedClass}">
-      <div class="lane-label" data-lane="${i}">
-        <span>${i}レーン</span>
-        <span class="toggle-icon">${iconTxt}</span>
-        <span class="card-count-badge" id="count_badge_${zoneId}">0件</span>
+  lanesContainer.insertAdjacentHTML('beforeend', `
+      <div class="lane-row${collapsedClass}">
+        <div class="lane-label" data-lane="${i}">
+          <span>${i}レーン</span>
+          <span class="toggle-icon">${iconTxt}</span>
+          <span class="card-count-badge" id="count_badge_${zoneId}">0件</span>
+        </div>
+        <div class="dropzone" id="${zoneId}"></div>
       </div>
-      <div class="dropzone" id="${zoneId}" style="
-        display: flex;
-        flex-direction: row; /* カードを横に並べる */
-        overflow-x: auto;    /* 横方向にはみ出したらスクロール */
-        overflow-y: hidden;  /* 縦方向は隠す */
-        white-space: nowrap; /* 改行させない */
-        gap: 15px;           /* カード同士の隙間 */
-        padding: 10px;
-        min-height: 220px;   /* カードが収まる最小高さ */
-        align-items: flex-start;
-      "></div>
-    </div>
-  `);
+    `);
 }
 
 // レーンのアコーディオン（開閉）機能
