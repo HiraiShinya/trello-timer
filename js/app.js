@@ -40,10 +40,12 @@ for (let i = 1; i <= 15; i++) {
   let iconTxt = isCollapsed ? '▶' : '▼';
 
 // レーン作成ループ（HTML生成部分）
+// lane-label に style="flex-shrink: 0;" を追加
 lanesContainer.insertAdjacentHTML('beforeend', `
-    <div class="lane-row${collapsedClass}">
-      <div class="lane-label" data-lane="${i}"> ... </div>
+    <div class="lane-row${collapsedClass}" style="display: flex; align-items: stretch;">
+      <div class="lane-label" data-lane="${i}" style="flex-shrink: 0; min-width: 40px;"> レーン</div>
       <div class="dropzone" id="${zoneId}" style="
+        flex-grow: 1; /* 残りの幅をすべて使う */
         display: flex !important;
         flex-flow: row nowrap !important;
         overflow-x: auto !important;
