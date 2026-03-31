@@ -143,79 +143,52 @@ function renderCardsToFactory(cards) {
     var cardId = card.id;
     if (document.getElementById('card_' + cardId)) return;
 
-    // --- ラベルHTML（詳細ボタンの高さ24pxに合わせる調整） ---
     var labelsHtml = '';
     if (card.labels && card.labels.length > 0) {
       labelsHtml = '<div class="trello-labels-container" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">';
       card.labels.forEach(label => {
         var colorClass = label.color ? 't-label-' + label.color : 't-label-default';
-        labelsHtml += `<span class="trello-label ${colorClass}" style="
-          margin:0; 
-          font-size:11px; 
-          height:24px; 
-          line-height:24px; 
-          padding:0 10px; 
-          display:inline-flex; 
-          align-items:center; 
-          box-sizing:border-box; 
-          white-space:nowrap;
-          border-radius:3px;
-        ">${label.name || ''}</span>`;
+        labelsHtml += `<span class="trello-label ${colorClass}" style="margin:0; font-size:11px; height:24px; line-height:24px; padding:0 10px; display:inline-flex; align-items:center; box-sizing:border-box; white-space:nowrap; border-radius:3px;">${label.name || ''}</span>`;
       });
       labelsHtml += '</div>';
     }
 
     var cardHtml = `
-        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; min-height:200px; overflow:hidden; align-items: stretch; margin-bottom: 10px;">
+        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; height: auto; min-height: 165px; overflow: visible; align-items: stretch; margin-bottom: 10px; box-sizing: border-box;">
           <div class="working-badge">作業中</div>
 
-          <div class="card-left" style="flex: 1; min-width: 0; padding: 15px 10px; display: flex; flex-direction: column; overflow:hidden;">
-            <div style="flex: 1;">
-              <div class="card-header" style="font-weight:bold; margin-bottom:12px; line-height:1.4; font-size:15px; color: #172b4d; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${card.name}">${card.name}</div>
-              
-              <div class="card-meta-row" style="display:flex; align-items:center; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
+          <div class="card-left" style="flex: 1; min-width: 0; padding: 10px 10px; display: flex; flex-direction: column; overflow:visible;">
+            <div style="margin-bottom: 8px;">
+              <div class="card-header" style="font-weight:bold; margin-bottom:8px; line-height:1.3; font-size:14px; color: #172b4d; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${card.name}">${card.name}</div>
+              <div class="card-meta-row" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 ${labelsHtml}
-                <button class="btn-open-detail" id="detail_${cardId}" title="別タブで詳細を開く" style="
-                  border:1px solid #dfe1e6; 
-                  background:#f4f5f7; 
-                  border-radius:3px; 
-                  padding:0 10px; 
-                  cursor:pointer; 
-                  color:#5e6c84; 
-                  font-size:11px; 
-                  height:24px; 
-                  display:flex; 
-                  align-items:center; 
-                  white-space:nowrap; 
-                  flex-shrink:0;
-                  box-sizing:border-box;
-                ">🔍 詳細</button>
+                <button class="btn-open-detail" id="detail_${cardId}" title="別タブで詳細を開く" style="border:1px solid #dfe1e6; background:#f4f5f7; border-radius:3px; padding:0 8px; cursor:pointer; color:#5e6c84; font-size:11px; height:24px; display:flex; align-items:center; white-space:nowrap; flex-shrink:0;">🔍 詳細</button>
               </div>
             </div>
             
-            <div class="card-body" style="margin-top:auto; padding-bottom: 5px;">
-              <div style="font-size:10px; color:#888; margin-bottom:6px;">タップでアサイン（横スクロール可）</div>
+            <div class="card-body" style="margin-top:auto;">
+              <div style="font-size:10px; color:#888; margin-bottom:2px;">タップでアサイン（横スクロール可）</div>
               <div class="quick-member-list" id="quick_${cardId}"></div>
-              <button class="btn-batch" id="batch_${cardId}" style="margin-top:15px;"></button>
+              <button class="btn-batch" id="batch_${cardId}" style="margin-top:8px;"></button>
             </div>
           </div>
 
           <div class="card-right" id="slots_${cardId}" style="
-            width:160px; 
+            width:140px; 
             flex-shrink:0; 
             border-left:1px dashed #ddd; 
-            padding:12px 6px; 
+            padding:6px 4px; 
             display:grid; 
             grid-template-columns: 1fr 1fr; 
-            grid-template-rows: auto auto; 
-            gap:15px 8px; 
+            grid-template-rows: 82px 82px; 
+            gap:6px; 
             background:#fcfcfc;
             align-content: start;
           ">
-            <div class="member-slot empty-slot" id="slot_${cardId}_0" style="min-height:105px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:8px 0; box-sizing: border-box;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_1" style="min-height:105px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:8px 0; box-sizing: border-box;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_2" style="min-height:105px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:8px 0; box-sizing: border-box;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_3" style="min-height:105px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:8px 0; box-sizing: border-box;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_0" style="height:82px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px 0; box-sizing:border-box; overflow:hidden;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_1" style="height:82px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px 0; box-sizing:border-box; overflow:hidden;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_2" style="height:82px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px 0; box-sizing:border-box; overflow:hidden;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_3" style="height:82px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px 0; box-sizing:border-box; overflow:hidden;"></div>
           </div>
         </div>
       `;
