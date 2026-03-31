@@ -180,7 +180,7 @@ function renderCardsToFactory(cards) {
             padding:10px 5px; 
             display:grid; 
             grid-template-columns: 1fr 1fr; 
-            grid-template-rows: 100px 100px; 
+            grid-template-rows: 75px 75px; 
             gap:12px 6px; 
             background:#fcfcfc;
             align-content: start;
