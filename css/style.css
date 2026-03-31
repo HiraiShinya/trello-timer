@@ -343,7 +343,7 @@
   .card-body {
     display: flex;
     flex-direction: column;
-    margin-top: auto;
+    margin-top: 0px;
   }
 
   .quick-member-list {
