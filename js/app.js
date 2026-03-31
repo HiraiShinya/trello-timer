@@ -42,10 +42,16 @@ for (let i = 1; i <= 15; i++) {
 // レーン作成ループ（HTML生成部分）
 // lane-label に style="flex-shrink: 0;" を追加
 lanesContainer.insertAdjacentHTML('beforeend', `
-    <div class="lane-row${collapsedClass}" style="display: flex; align-items: stretch;">
-      <div class="lane-label" data-lane="${i}" style="flex-shrink: 0; min-width: 40px;"> レーン</div>
+    <div class="lane-row${collapsedClass}" style="display: flex; align-items: stretch; margin-bottom: 10px;">
+      <div class="lane-label" data-lane="${i}" style="flex-shrink: 0; min-width: 40px; cursor: pointer;">
+        <span>${i}レーン</span>
+        <span class="toggle-icon">${iconTxt}</span>
+        <span class="card-count-badge" id="count_badge_${zoneId}">0件</span>
+      </div>
+
       <div class="dropzone" id="${zoneId}" style="
-        flex-grow: 1; /* 残りの幅をすべて使う */
+        flex-grow: 1;
+        min-width: 0; /* 親要素を突き破らないための設定 */
         display: flex !important;
         flex-flow: row nowrap !important;
         overflow-x: auto !important;
@@ -54,6 +60,7 @@ lanesContainer.insertAdjacentHTML('beforeend', `
         min-height: 200px;
         gap: 12px;
         align-items: flex-start;
+        background: #f8f9fa; /* 境界がわかりやすいよう薄い色をつけています */
       "></div>
     </div>
 `);
