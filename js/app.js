@@ -154,15 +154,15 @@ function renderCardsToFactory(cards) {
     }
 
     var cardHtml = `
-        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; height: auto; min-height: 200px; overflow: visible; align-items: stretch; margin-bottom: 10px; box-sizing: border-box;">
-          <div class="working-badge">作業中</div>
+        <div class="card-item" id="card_${cardId}" data-card-id="${cardId}" style="display:flex; min-height:210px; overflow:visible; align-items: stretch; margin-bottom: 10px; box-sizing: border-box; position:relative;">
+          <div class="working-badge" style="position:absolute; top:-5px; left:10px; z-index:10;">作業中</div>
 
-          <div class="card-left" style="flex: 1; min-width: 0; padding: 12px 10px; display: flex; flex-direction: column; overflow:visible;">
+          <div class="card-left" style="flex: 1; min-width: 0; padding: 20px 10px 10px 12px; display: flex; flex-direction: column; overflow:visible;">
             <div style="margin-bottom: 10px;">
               <div class="card-header" style="font-weight:bold; margin-bottom:8px; line-height:1.4; font-size:14px; color: #172b4d; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${card.name}">${card.name}</div>
               <div class="card-meta-row" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
                 ${labelsHtml}
-                <button class="btn-open-detail" id="detail_${cardId}" title="別タブで詳細を開く" style="border:1px solid #dfe1e6; background:#f4f5f7; border-radius:3px; padding:0 8px; cursor:pointer; color:#5e6c84; font-size:11px; height:22px; display:flex; align-items:center; white-space:nowrap; flex-shrink:0; margin-top:-1px;">🔍 詳細</button>
+                <button class="btn-open-detail" id="detail_${cardId}" title="別タブで詳細を開く" style="border:1px solid #dfe1e6; background:#f4f5f7; border-radius:3px; padding:0 8px; cursor:pointer; color:#5e6c84; font-size:11px; height:22px; display:flex; align-items:center; white-space:nowrap; flex-shrink:0;">🔍 詳細</button>
               </div>
             </div>
             
@@ -177,18 +177,18 @@ function renderCardsToFactory(cards) {
             width:150px; 
             flex-shrink:0; 
             border-left:1px dashed #ddd; 
-            padding:10px 4px; 
+            padding:10px 5px; 
             display:grid; 
             grid-template-columns: 1fr 1fr; 
-            grid-template-rows: 110px 110px; 
-            gap:10px 6px; 
+            grid-template-rows: 100px 100px; 
+            gap:12px 6px; 
             background:#fcfcfc;
             align-content: start;
           ">
-            <div class="member-slot empty-slot" id="slot_${cardId}_0" style="height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 0; box-sizing:border-box; overflow:hidden;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_1" style="height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 0; box-sizing:border-box; overflow:hidden;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_2" style="height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 0; box-sizing:border-box; overflow:hidden;"></div>
-            <div class="member-slot empty-slot" id="slot_${cardId}_3" style="height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px 0; box-sizing:border-box; overflow:hidden;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_0" style="height:100px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 0; box-sizing:border-box;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_1" style="height:100px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 0; box-sizing:border-box;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_2" style="height:100px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 0; box-sizing:border-box;"></div>
+            <div class="member-slot empty-slot" id="slot_${cardId}_3" style="height:100px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 0; box-sizing:border-box;"></div>
           </div>
         </div>
       `;
