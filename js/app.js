@@ -166,7 +166,7 @@ function renderCardsToFactory(cards) {
               </div>
             </div>
             
-            <div class="card-body" style="margin-top:auto;">
+            <div class="card-body">
               <div style="font-size:10px; color:#888; margin-bottom:4px;">タップでアサイン</div>
               <div class="quick-member-list" id="quick_${cardId}"></div>
               <button class="btn-batch" id="batch_${cardId}" style="margin-top:10px;"></button>
