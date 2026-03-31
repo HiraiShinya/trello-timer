@@ -281,7 +281,7 @@
 
   /* 下部：未割当 */
   .bottom-panel {
-    height: 220px;
+    height: 250px;
     background: #e3fcef;
     border-top: 2px solid #36b37e;
     flex-shrink: 0;
