@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getDatabase, ref, onValue, set, update, push } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCZSImS2hTSASLj9NfCpCMOWsT54d9hh7k",
@@ -11,10 +12,23 @@ const firebaseConfig = {
   appId: "1:1082057229145:web:93166029c94b58617fc248"
 };
 
+// firebase設定情報を読み込む
 const app = initializeApp(firebaseConfig);
+// Realtime Databaseのインスタンス作成（タイマーのリアルタイム同期用）
 const db = getDatabase(app);
+// Firestoreのインスタンスを作成（ログ格納用）
+const fs = getFirestore(app);
 
-var MEMBERS = ['田中', '佐藤', '鈴木', '山田', '伊藤', '渡辺'];
+// 作業員名簿：同姓同名に対応するため、名前ではなくID（社員番号等）で管理
+var MEMBERS = [
+  { id: 'W01', name: '田中' },
+  { id: 'W02', name: '佐藤' },
+  { id: 'W03', name: '鈴木' },
+  { id: 'W04', name: '山田' },
+  { id: 'W05', name: '伊藤' },
+  { id: 'W06', name: '渡辺' },
+  { id: 'W07', name: '田中' } 
+];
 var memberPhotos = {};
 var colorIdx = 0;
 var memberColors = {};
@@ -106,8 +120,8 @@ allZones.forEach(zoneId => {
 });
 
 // =========================================================================
-// onValue(ref(db, 'photos')で、Firebaseの「db」にある「photo」という名前の格納庫を24時間監視するという意味
-// 「{}」は、想定外事象（snapshot.valが空だった場合）のエラー回避
+// 例：onValue(ref(db, 'photos')で、Firebaseの「db」にある「photo」という名前の格納庫を24時間監視するという意味
+// 例：「「{}」は、想定外事象（snapshot.valが空だった場合）のエラー回避
 onValue(ref(db, 'photos'), (snapshot) => { memberPhotos = snapshot.val() || {}; buildSettings(); refreshAllTimerAvatars(); });
 onValue(ref(db, 'timers'), (snapshot) => { currentFirebaseTimers = snapshot.val() || {}; renderAllTimers(); });
 onValue(ref(db, 'logs'), (snapshot) => { renderLogs(snapshot.val() || {}); });
@@ -230,21 +244,23 @@ function renderCardsToFactory(cards) {
       window.open(`https://trello.com/c/${cardId}`, '_blank');
     });
 
-    var quickList = document.getElementById('quick_' + cardId);
-    MEMBERS.forEach(name => {
-      var btn = document.createElement('button');
-      btn.className = 'quick-add-btn';
-      btn.dataset.memberName = name;
-      btn.appendChild(makeAvatarEl(name, 18));
-      var nameSpan = document.createElement('span');
-      nameSpan.textContent = name;
-      btn.appendChild(nameSpan);
-      btn.addEventListener('click', () => {
-        if (btn.classList.contains('added')) return;
-        addMemberToCard(cardId, card.name, name);
-      });
-      quickList.appendChild(btn);
-    });
+var quickList = document.getElementById('quick_' + cardId);
+MEMBERS.forEach(memberObj => { // name ではなく memberObj を受け取る
+  var btn = document.createElement('button');
+  btn.className = 'quick-add-btn';
+  btn.dataset.memberId = memberObj.id; // 名前ではなくIDをデータ属性に持つ
+  btn.appendChild(makeAvatarEl(memberObj, 18)); // オブジェクトを渡す
+  var nameSpan = document.createElement('span');
+  nameSpan.textContent = memberObj.name; // 表示は名前
+  btn.appendChild(nameSpan);
+  
+  btn.addEventListener('click', () => {
+    if (btn.classList.contains('added')) return;
+    // 名前ではなくオブジェクト(memberObj)をそのまま渡す
+    addMemberToCard(cardId, card.name, memberObj); 
+  });
+  quickList.appendChild(btn);
+});
 
     document.getElementById('batch_' + cardId).addEventListener('click', () => {
       toggleBatchTimersForCard(cardId);
@@ -284,19 +300,31 @@ function updateLaneCounts() {
   }
 }
 
-function addMemberToCard(cardId, cardName, member) {
+function addMemberToCard(cardId, cardName, memberObj) {
   let activeCount = 0;
   for (let k in currentFirebaseTimers) { if (currentFirebaseTimers[k].cardId === cardId) activeCount++; }
-  if (activeCount >= 4) { alert('1つのタスクに割り当てられるメンバーは最大4名枠までです。'); return; }
+  if (activeCount >= 4) { alert('最大4名までです。'); return; }
 
-  var key = cardId + '_' + member;
+  // キーに memberObj.id を使用（同姓同名でも衝突しない）
+  var key = cardId + '_' + memberObj.id;
   if (currentFirebaseTimers[key]) return;
 
   let currentZone = currentPositions[cardId] || 'zone_unassigned';
   let initialState = (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') ? 'paused' : 'running';
 
-  set(ref(db, 'timers/' + key), { cardId: cardId, cardName: cardName, member: member, state: initialState, startTime: initialState === 'running' ? Date.now() : null, accumulated: 0 });
-  addLogToFirebase(member, cardName, 0, initialState === 'running');
+  // RTDB保存：後で参照しやすいよう memberId と memberName を分ける
+  set(ref(db, 'timers/' + key), { 
+    cardId: cardId, 
+    cardName: cardName, 
+    memberId: memberObj.id, 
+    memberName: memberObj.name, 
+    state: initialState, 
+    startTime: initialState === 'running' ? Date.now() : null, 
+    accumulated: 0 
+  });
+
+  addLogToFirebase(memberObj.name, cardName, 0, initialState === 'running');
+  saveToFirestore(memberObj.id, memberObj.name, cardName, cardId, 0, initialState === 'running');
 }
 
 // 全員再開、全員停止処理の開始
@@ -325,7 +353,8 @@ function stopAllTimersForCard(cardId) {
       // Firebase更新（他の人が別端末でみても、常に同じ値が表示されるように更新）
       update(ref(db, 'timers/' + key), { state: 'paused', accumulated: elapsed, startTime: null });
       // 全員分記録
-      addLogToFirebase(data.member, data.cardName, elapsed, false);
+      addLogToFirebase(data.memberName, data.cardName, elapsed, false);
+      saveToFirestore(data.memberId, data.memberName, data.cardName, data.cardId, elapsed, false);
     }
   }
 }
@@ -341,7 +370,8 @@ function resumeAllTimersForCard(cardId) {
     // そのカードの担当者 & タイマーが今止まっている場合のみ再開する
     if (data.cardId === cardId && data.state === 'paused') {
       update(ref(db, 'timers/' + key), { state: 'running', startTime: Date.now() });
-      addLogToFirebase(data.member, data.cardName, data.accumulated, true);
+      addLogToFirebase(data.memberName, data.cardName, data.accumulated, true);
+      saveToFirestore(data.memberId, data.memberName, data.cardName, data.cardId, data.accumulated, true);
     }
   }
 }
@@ -445,14 +475,16 @@ function toggleFirebaseTimer(key) {
     let elapsed = data.accumulated + Math.floor((Date.now() - data.startTime) / 1000);
     update(ref(db, 'timers/' + key), { state: 'paused', accumulated: elapsed, startTime: null });
     // ログを記録する
-    addLogToFirebase(data.member, data.cardName, elapsed, false);
+    addLogToFirebase(data.memberName, data.cardName, elapsed, false);
+    saveToFirestore(data.memberId, data.memberName, data.cardName, data.cardId, elapsed, false);
   }
   // タイマーが作動していない場合（タイマー開始時、再開時の処理）
   else {
     //未割当エリア、保留エリアだった場合、return。タイマーが動かないようにする。
     if (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') return;
     update(ref(db, 'timers/' + key), { state: 'running', startTime: Date.now() });
-    addLogToFirebase(data.member, data.cardName, data.accumulated, true);
+    addLogToFirebase(data.memberName, data.cardName, data.accumulated, true);
+    saveToFirestore(data.memberId, data.memberName, data.cardName, data.cardId, data.accumulated, true);
   }
 }
 
@@ -461,15 +493,15 @@ function buildSettings() {
   var container = document.getElementById('memberSettings'); container.innerHTML = '';
 
   // 各メンバーに対して処理
-  MEMBERS.forEach(name => {
+  MEMBERS.forEach(member => {
     var item = document.createElement('div');
     item.className = 'member-setting-item';
-    item.id = 'setting_' + name;
+    item.id = 'setting_' + member.id;
 
     var uploadArea = document.createElement('div'); uploadArea.className = 'photo-upload-area';
-    if (memberPhotos[name]) {
+    if (memberPhotos[member.id]) {
       // Firebaseに写真があれば、その写真を表示
-      var img = document.createElement('img'); img.src = memberPhotos[name]; uploadArea.appendChild(img);
+      var img = document.createElement('img'); img.src = memberPhotos[member.id]; uploadArea.appendChild(img);
     } else { // 写真がなければ「+」ボタンを表示
       var ph = document.createElement('span'); ph.className = 'photo-placeholder'; ph.textContent = '+'; uploadArea.appendChild(ph);
     }
@@ -478,14 +510,14 @@ function buildSettings() {
     fileInput.addEventListener('change', e => {
       var file = e.target.files[0]; if (!file) return;
       var reader = new FileReader();
-      reader.onload = ev => { set(ref(db, 'photos/' + name), ev.target.result); };
+      reader.onload = ev => { set(ref(db, 'photos/' + member.id), ev.target.result); };
       reader.readAsDataURL(file);
     });
     uploadArea.appendChild(fileInput);
 
     var info = document.createElement('div');
-    var nm = document.createElement('div'); nm.className = 'member-setting-name'; nm.textContent = name;
-    var hint = document.createElement('div'); hint.className = 'member-setting-hint'; hint.textContent = memberPhotos[name] ? '登録済み' : '写真未登録';
+    var nm = document.createElement('div'); nm.className = 'member-setting-name'; nm.textContent = member.name;
+    var hint = document.createElement('div'); hint.className = 'member-setting-hint'; hint.textContent = memberPhotos[member.id] ? '登録済み' : '写真未登録';
 
     info.appendChild(nm); info.appendChild(hint);
     item.appendChild(uploadArea); item.appendChild(info); container.appendChild(item);
@@ -496,9 +528,9 @@ function buildSettings() {
       if (e.target.closest('.photo-upload-area')) return;
 
       // クリックしたメンバーが既にハイライトされているかどうかを確認する。もしハイライトされていたらハイライトをなくす
-      if (currentHighlightMember === name) currentHighlightMember = null;
+      if (currentHighlightMember === member.id) currentHighlightMember = null;
       // そうでなければ、ハイライトさせるメンバーの情報を格納する
-      else currentHighlightMember = name;
+      else currentHighlightMember = member.id;
       applyHighlight();
     });
   });
@@ -531,24 +563,38 @@ function applyHighlight() {
 
 function getColor(n) { if (!memberColors[n]) { memberColors[n] = palettes[colorIdx % palettes.length]; colorIdx++; } return memberColors[n]; }
 function fmt(s) { return String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor((s % 3600) / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
-function makeAvatarEl(member, size) {
-  var wrap = document.createElement('div'); wrap.className = 't-avatar'; wrap.style.width = size + 'px'; wrap.style.height = size + 'px';
-  if (memberPhotos[member]) {
-    var img = document.createElement('img'); img.src = memberPhotos[member]; wrap.appendChild(img);
+function makeAvatarEl(memberObj, size) {
+  var wrap = document.createElement('div'); 
+  wrap.className = 't-avatar'; 
+  wrap.style.width = size + 'px'; 
+  wrap.style.height = size + 'px';
+  
+  // 写真や色の決定に ID を使用する（同姓同名でも別々の色・写真になる）
+  if (memberPhotos[memberObj.id]) {
+    var img = document.createElement('img'); 
+    img.src = memberPhotos[memberObj.id]; 
+    wrap.appendChild(img);
   } else {
-    var col = getColor(member); wrap.style.background = col.bg; wrap.style.color = col.fg; wrap.textContent = member.slice(0, 2);
+    var col = getColor(memberObj.id); 
+    wrap.style.background = col.bg; 
+    wrap.style.color = col.fg; 
+    wrap.textContent = memberObj.name.slice(0, 2);
   }
   return wrap;
 }
 
 function refreshAllTimerAvatars() {
   document.querySelectorAll('.t-avatar[data-member]').forEach(el => {
-    var member = el.dataset.member; el.innerHTML = '';
-    if (memberPhotos[member]) {
-      var img = document.createElement('img'); img.src = memberPhotos[member]; el.appendChild(img);
+    var memberName = el.dataset.member;
+    var m = MEMBERS.find(mem => mem.name === memberName);
+    if(!m) return;
+    
+    el.innerHTML = '';
+    if (memberPhotos[m.id]) {
+      var img = document.createElement('img'); img.src = memberPhotos[m.id]; el.appendChild(img);
       el.style.background = ''; el.style.color = '';
     } else {
-      var col = getColor(member); el.style.background = col.bg; el.style.color = col.fg; el.textContent = member.slice(0, 2);
+      var col = getColor(m.id); el.style.background = col.bg; el.style.color = col.fg; el.textContent = m.name.slice(0, 2);
     }
   });
 }
@@ -580,4 +626,30 @@ function renderLogs(logsObj) {
       `;
     list.appendChild(el);
   });
+}
+
+/**
+ * Firestoreへ詳細なログを保存する
+ * タイマーが「停止」した時、または「開始」した時に呼ばれる
+ */
+async function saveToFirestore(workerId, workerName, cardName, cardId, seconds, isResume) {
+  try {
+    const durationMin = parseFloat((seconds / 60).toFixed(1));
+    const today = new Date().toISOString().split('T')[0];
+
+    await addDoc(collection(fs, "work_logs"), {
+      timestamp: serverTimestamp(),
+      date: today,
+      workerId: workerId,    // 同姓・同姓同名回避用
+      workerName: workerName, 
+      cardName: cardName,
+      cardId: cardId,        // カード名重複防止用
+      durationMin: durationMin,
+      action: isResume ? "開始" : "停止",
+      type: "log_entry"
+    });
+    console.log(`Firestore保存完了: ${workerName} (ID:${workerId})`);
+  } catch (e) {
+    console.error("Firestoreエラー: ", e);
+  }
 }
