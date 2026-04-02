@@ -46,11 +46,10 @@ window.TrelloPowerUp.initialize({
         // Trelloで使える色は: blue, green, orange, red, yellow, purple, pink, sky, lime, light-gray, black
         var displayRules = {
           '_Ｎ受取区分': { color: null, icon: ''},
+          'Ｎ工予見ＮＯ': { color: 'green', icon: ' ' },
           'Ｎ作業開始年月日': { color: 'blue', icon: '始📅 ' },
           'Ｎ作業開始時刻': { color: 'blue', icon: '⌚ ' },
-          'Ｎ工予見ＮＯ': { color: 'green', icon: ' ' },
           'Ａ車型': { color: 'sky', icon: '🚚 ' },
-          'Ｎ作業予定完了年月日': { color: null, icon: '' },
           'Ｎ作業完了年月日': { color: 'red', icon: '終📅 ' },
           'Ｎ作業完了時刻': { color: 'red', icon: '⌚ ' }
         };
@@ -95,9 +94,9 @@ window.TrelloPowerUp.initialize({
             // 💡 特殊処理：区分によってアイコンを付与する
             if (ruleName === '_Ｎ受取区分') {
               if (displayValue === '引取') {
-                displayValue = '🚚💨 引取';
+                displayValue = '🚚💨 【引取】';
               } else if (displayValue === '持込') {
-                displayValue = '🏠🔚 持込';
+                displayValue = '🏠🔚 【持込】';
               }
             }
 
