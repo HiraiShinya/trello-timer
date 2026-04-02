@@ -615,7 +615,7 @@ function applyHighlight() {
   if (activeSetting) activeSetting.classList.add('highlight-active');
 
   document.querySelectorAll('.member-slot').forEach(slot => {
-    if (slot.dataset.assignedMember === currentHighlightMember) {
+    if (slot.dataset.assignedMemberId === currentHighlightMember) {
       slot.classList.add('highlight-active');
       let cardEl = slot.closest('.card-item');
       if (cardEl) cardEl.classList.add('highlight-active');
