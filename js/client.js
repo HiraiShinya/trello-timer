@@ -29,7 +29,7 @@ window.TrelloPowerUp.initialize({
   'card-badges': function (t, options) {
     return Promise.all([
       t.card('customFieldItems'), // カードに入力されたデータを取得
-      t.board('customFields')     // ボード全体のカスタムフィールドの設定を取得
+      t.board('customFields')      // ボード全体のカスタムフィールドの設定を取得
     ])
       // 上記の処理が2つとも終わったら実行開始
       .then(function (values) {
@@ -45,11 +45,13 @@ window.TrelloPowerUp.initialize({
         // 💡 ここに書いた【上からの順番】で、必ず左から右へバッジが並ぶ
         // Trelloで使える色は: blue, green, orange, red, yellow, purple, pink, sky, lime, light-gray, black
         var displayRules = {
-          'Ｎ作業開始年月日': { color: 'blue', icon: '📅 ' },
+          '_Ｎ受取区分': { color: null, icon: ''},
+          'Ｎ作業開始年月日': { color: 'blue', icon: '始📅 ' },
           'Ｎ作業開始時刻': { color: 'blue', icon: '⌚ ' },
           'Ｎ工予見ＮＯ': { color: 'green', icon: ' ' },
           'Ａ車型': { color: 'sky', icon: '🚚 ' },
-          'Ｎ作業完了年月日': { color: 'red', icon: '📅 ' },
+          'Ｎ作業予定完了年月日': { color: null, icon: '' },
+          'Ｎ作業完了年月日': { color: 'red', icon: '終📅 ' },
           'Ｎ作業完了時刻': { color: 'red', icon: '⌚ ' }
         };
 
@@ -87,12 +89,30 @@ window.TrelloPowerUp.initialize({
             }
           }
 
-          // データが空じゃなければバッジとして追加
+          // データが存在する場合の処理
           if (displayValue) {
-            badges.push({
-              text: rule.icon + displayValue,
-              color: rule.color
-            });
+            
+            // 💡 特殊処理：区分によってアイコンを付与する
+            if (ruleName === '_Ｎ受取区分') {
+              if (displayValue === '引取') {
+                displayValue = '🚚💨 引取';
+              } else if (displayValue === '持込') {
+                displayValue = '🏠🔚 持込';
+              }
+            }
+
+            // バッジオブジェクトの作成
+            var badgeObj = {
+              text: rule.icon + displayValue
+            };
+
+            // colorが設定されている場合のみ追加（nullの場合は背景色なし）
+            if (rule.color) {
+              badgeObj.color = rule.color;
+            }
+
+            // 完成したバッジをリストに追加
+            badges.push(badgeObj);
           }
         });
 
@@ -100,4 +120,3 @@ window.TrelloPowerUp.initialize({
         return badges;
       });
   }
-});
