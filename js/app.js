@@ -145,8 +145,11 @@ function fetchTrelloCards() {
     var targetList = values[0].find(list => list.name === '作業中');
     if (!targetList) return;
 
-    // 「作業中」リストに入っている最新のカード一覧だけを抽出して渡す
-    renderCardsToFactory(values[1].filter(card => card.idList === targetList.id));
+    var filteredCards = values[1].filter(card => {
+      return card.idList === targetList.id && card.name !== 'このリスト内のカード';
+    });
+
+    renderCardsToFactory(filteredCards);
   });
 }
 
