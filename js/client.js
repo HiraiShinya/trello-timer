@@ -13,7 +13,7 @@ window.TrelloPowerUp.initialize({
         return t.modal({
           url: './timer.html',
           accentColor: '#0079bf',
-          size: large,
+          fullscreen: true,
           title: '配車・アサイン管理ボード'
         });
       }
