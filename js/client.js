@@ -120,3 +120,4 @@ window.TrelloPowerUp.initialize({
         return badges;
       });
   }
+});
