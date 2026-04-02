@@ -378,89 +378,153 @@ function resumeAllTimersForCard(cardId) {
 
 function renderAllTimers() {
   let timersByCard = {};
-  document.querySelectorAll('.card-item').forEach(cardEl => { timersByCard[cardEl.dataset.cardId] = []; });
+  // 画面上の全カードに対して、空のタイマーリストを準備
+  document.querySelectorAll('.card-item').forEach(cardEl => { 
+    timersByCard[cardEl.dataset.cardId] = []; 
+  });
 
+  // Firebaseから取得したタイマーデータをカードごとに振り分け
   for (let key in currentFirebaseTimers) {
     let data = currentFirebaseTimers[key];
-    if (timersByCard[data.cardId]) timersByCard[data.cardId].push({ key: key, data: data });
+    if (timersByCard[data.cardId]) {
+      timersByCard[data.cardId].push({ key: key, data: data });
+    }
   }
 
+  // 各カードの表示を更新
   document.querySelectorAll('.card-item').forEach(cardEl => {
     let cardId = cardEl.dataset.cardId;
     let timers = timersByCard[cardId] || [];
     let isWorking = false;
     let runningCount = 0;
 
+    // 4つのメンバースロットを更新
     for (let i = 0; i < 4; i++) {
       let slotEl = document.getElementById(`slot_${cardId}_${i}`);
       if (!slotEl) continue;
 
       if (i < timers.length) {
         let t = timers[i];
-        if (t.data.state === 'running') { isWorking = true; runningCount++; }
+        // 1人でも動いていればカード全体を「作業中」状態にする
+        if (t.data.state === 'running') { 
+          isWorking = true; 
+          runningCount++; 
+        }
         updateSlotVisuals(slotEl, t.key, t.data);
       } else {
-        if (slotEl.dataset.key && localTimers[slotEl.dataset.key]) { clearInterval(localTimers[slotEl.dataset.key]); delete localTimers[slotEl.dataset.key]; }
-        slotEl.dataset.key = ''; delete slotEl.dataset.assignedMember;
-        slotEl.className = 'member-slot empty-slot'; slotEl.innerHTML = '';
+        // メンバーがいないスロットを掃除
+        if (slotEl.dataset.key && localTimers[slotEl.dataset.key]) { 
+          clearInterval(localTimers[slotEl.dataset.key]); 
+          delete localTimers[slotEl.dataset.key]; 
+        }
+        slotEl.dataset.key = ''; 
+        slotEl.dataset.assignedMemberId = ''; // IDをクリア
+        slotEl.className = 'member-slot empty-slot'; 
+        slotEl.innerHTML = '';
       }
     }
 
-    let activeMembers = timers.map(t => t.data.member);
+    // --- 【修正ポイント1】クイックアサインボタン（顔写真ボタン）の「追加済み」状態の判定 ---
+    // 名前ではなく memberId で判定を行う
+    let activeMemberIds = timers.map(t => t.data.memberId);
     cardEl.querySelectorAll('.quick-add-btn').forEach(btn => {
-      if (activeMembers.includes(btn.dataset.memberName)) btn.classList.add('added');
-      else btn.classList.remove('added');
+      // ボタン側の dataset.memberId と比較
+      if (activeMemberIds.includes(btn.dataset.memberId)) {
+        btn.classList.add('added'); // グレーアウト等
+      } else {
+        btn.classList.remove('added');
+      }
     });
 
+    // カード自体のハイライト（作業中なら枠を光らせる等）
     if (isWorking) cardEl.classList.add('is-working');
     else cardEl.classList.remove('is-working');
 
+    // --- 【修正ポイント2】一括ボタン（全員のタイマーを停止/再開）の表示制御 ---
     let btnBatch = document.getElementById('batch_' + cardId);
     if (btnBatch) {
       if (runningCount > 0) {
-        btnBatch.style.display = 'block'; btnBatch.className = 'btn-batch stop'; btnBatch.textContent = '全員のタイマーを停止';
-      } else if (timers.length > 0) {
+        // 1人でも動いていれば「停止」ボタンを表示
+        btnBatch.style.display = 'block'; 
+        btnBatch.className = 'btn-batch stop'; 
+        btnBatch.textContent = '全員のタイマーを停止';
+      } else if (timers.length > 0) { 
+        // 全員止まっていて、かつメンバーが1人以上アサインされている場合
         let currentZone = currentPositions[cardId] || 'zone_unassigned';
-        if (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') btnBatch.style.display = 'none';
-        else { btnBatch.style.display = 'block'; btnBatch.className = 'btn-batch resume'; btnBatch.textContent = '全員のタイマーを再開'; }
-      } else { btnBatch.style.display = 'none'; }
+        // 「未割当」や「保留」にいる時はボタンを出さない
+        if (currentZone === 'zone_unassigned' || currentZone === 'zone_hold') {
+          btnBatch.style.display = 'none';
+        } else {
+          // 「作業レーン」にいる時だけ「再開」ボタンを表示
+          btnBatch.style.display = 'block'; 
+          btnBatch.className = 'btn-batch resume'; 
+          btnBatch.textContent = '全員のタイマーを再開';
+        }
+      } else {
+        // 誰もアサインされていないカードはボタンを隠す
+        btnBatch.style.display = 'none';
+      }
     }
   });
 
-  applyHighlight();
+  applyHighlight(); // ハイライトの再適用
 }
 
 function updateSlotVisuals(slotEl, key, data) {
+  // スロットの内容がまだ作られていない、または別のタイマーに切り替わった場合のみ初期化
   if (slotEl.dataset.key !== key) {
     slotEl.dataset.key = key;
-    slotEl.dataset.assignedMember = data.member;
+    // 重要：名前ではなく「ID」をスロットの目印にする
+    slotEl.dataset.assignedMemberId = data.memberId; 
+
     slotEl.innerHTML = `
         <div class="slot-avatar-wrap" style="margin-bottom:2px;"></div>
-        <div class="slot-name">${data.member}</div>
+        <div class="slot-name" style="font-size:11px; font-weight:bold;">${data.memberName}</div>
         <div class="slot-time val-text"></div>
         <button class="btn-toggle"></button>
       `;
-    let av = makeAvatarEl(data.member, 18);
-    av.dataset.member = data.member;
+
+    // アバター要素を作成（オブジェクト形式でIDと名前を渡す）
+    let av = makeAvatarEl({ id: data.memberId, name: data.memberName }, 18);
+    
+    // 重要：画像更新(refreshAllTimerAvatars)のために、アバター自体にもIDを持たせる
+    av.dataset.assignedMemberId = data.memberId; 
+    
     slotEl.querySelector('.slot-avatar-wrap').appendChild(av);
-    slotEl.querySelector('.btn-toggle').addEventListener('click', () => { toggleFirebaseTimer(key); });
+
+    // 停止・再開ボタンのクリックイベント
+    slotEl.querySelector('.btn-toggle').addEventListener('click', () => { 
+      toggleFirebaseTimer(key); 
+    });
   }
 
+  // 以下、タイマーの数字とボタンの表示更新
   let vs = slotEl.querySelector('.val-text');
   let tb = slotEl.querySelector('.btn-toggle');
 
   if (data.state === 'running') {
     slotEl.className = 'member-slot filled running';
-    vs.className = 'slot-time val-text running'; tb.className = 'btn-toggle btn-running'; tb.textContent = '停止';
+    vs.className = 'slot-time val-text running'; 
+    tb.className = 'btn-toggle btn-running'; 
+    tb.textContent = '停止';
+    
     if (!localTimers[key]) {
-      localTimers[key] = setInterval(() => { if (vs) vs.textContent = fmt(data.accumulated + Math.floor((Date.now() - data.startTime) / 1000)); }, 1000);
+      localTimers[key] = setInterval(() => { 
+        if (vs) vs.textContent = fmt(data.accumulated + Math.floor((Date.now() - data.startTime) / 1000)); 
+      }, 1000);
     }
     vs.textContent = fmt(data.accumulated + Math.floor((Date.now() - data.startTime) / 1000));
   } else {
     slotEl.className = 'member-slot filled paused';
-    vs.className = 'slot-time val-text paused'; tb.className = 'btn-toggle btn-paused'; tb.textContent = '再開';
+    vs.className = 'slot-time val-text paused'; 
+    tb.className = 'btn-toggle btn-paused'; 
+    tb.textContent = '再開';
+    
     vs.textContent = fmt(data.accumulated);
-    if (localTimers[key]) { clearInterval(localTimers[key]); delete localTimers[key]; }
+    if (localTimers[key]) { 
+      clearInterval(localTimers[key]); 
+      delete localTimers[key]; 
+    }
   }
 }
 
@@ -569,32 +633,47 @@ function makeAvatarEl(memberObj, size) {
   wrap.style.width = size + 'px'; 
   wrap.style.height = size + 'px';
   
-  // 写真や色の決定に ID を使用する（同姓同名でも別々の色・写真になる）
+  // 写真の登録があるか、不変の ID をキーにして確認する
   if (memberPhotos[memberObj.id]) {
     var img = document.createElement('img'); 
     img.src = memberPhotos[memberObj.id]; 
     wrap.appendChild(img);
   } else {
+    // 写真がない場合は、IDに基づいて色を決定（同姓同名でもIDが違えば別の色になる）
     var col = getColor(memberObj.id); 
     wrap.style.background = col.bg; 
     wrap.style.color = col.fg; 
-    wrap.textContent = memberObj.name.slice(0, 2);
+    wrap.textContent = memberObj.name.slice(0, 2); // 名前の先頭2文字を表示
   }
   return wrap;
 }
 
 function refreshAllTimerAvatars() {
-  document.querySelectorAll('.t-avatar[data-member]').forEach(el => {
-    var memberName = el.dataset.member;
-    var m = MEMBERS.find(mem => mem.name === memberName);
-    if(!m) return;
+  // 名前(data-member)ではなく、ID(data-assigned-member-id)を持つ要素をすべて探す
+  document.querySelectorAll('.t-avatar[data-assigned-member-id]').forEach(el => {
+    // 1. 要素から作業員IDを取得
+    var workerId = el.dataset.assignedMemberId; 
+    if (!workerId) return;
+
+    // 2. MEMBERS配列から該当する作業員のオブジェクトを取得
+    var m = MEMBERS.find(mem => mem.id === workerId);
+    if (!m) return;
     
     el.innerHTML = '';
-    if (memberPhotos[m.id]) {
-      var img = document.createElement('img'); img.src = memberPhotos[m.id]; el.appendChild(img);
-      el.style.background = ''; el.style.color = '';
+    
+    // 3. IDを元に写真があるかチェック
+    if (memberPhotos[workerId]) {
+      var img = document.createElement('img'); 
+      img.src = memberPhotos[workerId]; 
+      el.appendChild(img);
+      el.style.background = ''; 
+      el.style.color = '';
     } else {
-      var col = getColor(m.id); el.style.background = col.bg; el.style.color = col.fg; el.textContent = m.name.slice(0, 2);
+      // 4. 写真がない場合は、IDを元に色を決めて名前の頭文字を表示
+      var col = getColor(workerId); 
+      el.style.background = col.bg; 
+      el.style.color = col.fg; 
+      el.textContent = m.name.slice(0, 2);
     }
   });
 }
